@@ -12,4 +12,5 @@ VERSION="$version" scripts/bundle.sh
 zip="build/ShortcutPhone-$version.zip"
 rm -f "$zip"
 ditto -c -k --keepParent build/ShortcutPhone.app "$zip"
-shasum -a 256 "$zip" | tee "$zip.sha256"
+# Written from inside build/ so the file names only the zip, and `shasum -c` works next to it.
+(cd build && shasum -a 256 "$(basename "$zip")" | tee "$(basename "$zip").sha256")
