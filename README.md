@@ -137,7 +137,7 @@ rather than in a public issue.
 
 ## Building from source
 
-You need Xcode 16 or later (Swift 6) and Node 22.
+You need Xcode 26 or later (Swift 6.2+) and Node 22.
 
 ```sh
 npm --prefix web ci

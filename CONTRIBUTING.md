@@ -5,7 +5,7 @@ open an issue first so we can agree on the approach.
 
 ## Setup
 
-You need Xcode 16 or later (Swift 6) and Node 22. See [Building from source](README.md#building-from-source).
+You need Xcode 26 or later (Swift 6.2+) and Node 22. See [Building from source](README.md#building-from-source).
 
 ```sh
 npm --prefix web ci
