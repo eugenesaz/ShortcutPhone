@@ -13,11 +13,16 @@ trap 'rm -f "$marker"' EXIT
 scripts/swift-test.sh --enable-code-coverage
 
 profdata="$(find .build -name default.profdata -path '*codecov*' -newer "$marker" | head -1)"
-# The newest build of the Core tests. It may predate the marker when nothing needed rebuilding.
-binary="$(find .build -type f -path '*ShortcutPhoneCoreTests.xctest/Contents/MacOS/ShortcutPhoneCoreTests' \
+# The newest test binary holding the Core tests. It may predate the marker when nothing needed
+# rebuilding. Swift Build makes one bundle per test target (ShortcutPhoneCoreTests.xctest); the
+# classic SwiftPM build system (Xcode on CI) makes one for the package (ShortcutPhonePackageTests).
+binary="$(find .build -type f \( \
+  -path '*ShortcutPhoneCoreTests.xctest/Contents/MacOS/ShortcutPhoneCoreTests' -o \
+  -path '*ShortcutPhonePackageTests.xctest/Contents/MacOS/ShortcutPhonePackageTests' \) \
   -exec stat -f '%m %N' {} + | sort -rn | head -1 | cut -d' ' -f2-)"
 if [ -z "$profdata" ] || [ -z "$binary" ]; then
   echo "coverage: no profile data or Core test binary found" >&2
+  find .build -maxdepth 6 \( -name '*.profdata' -o -name '*.xctest' \) >&2 || true
   exit 1
 fi
 
