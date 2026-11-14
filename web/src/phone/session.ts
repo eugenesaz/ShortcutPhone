@@ -48,6 +48,11 @@ export interface PhoneDeps {
   vibrate: (ms: number) => void;
   /** Current screen layout for both orientations; read after each render. */
   viewport?: () => Viewport | null;
+  /**
+   * The socket is back after a drop, e.g. because the Mac app restarted after an update.
+   * Not called for the first connection.
+   */
+  reconnected?: () => void;
 }
 
 export interface Phone {
@@ -125,6 +130,7 @@ export async function startPhone(deps: PhoneDeps): Promise<Phone | null> {
 
   let sendRaw: ((raw: string) => void) | null = null;
   let lastViewport = "";
+  let wasConnected = false;
   const reportViewport = (): void => {
     const viewport = deps.viewport?.();
     if (!sendRaw || !viewport) return;
@@ -147,7 +153,10 @@ export async function startPhone(deps: PhoneDeps): Promise<Phone | null> {
       model.connected = connected;
       if (!connected) sendRaw = null;
       deps.render(model);
-      if (connected) reportViewport();
+      if (!connected) return;
+      reportViewport();
+      if (wasConnected) deps.reconnected?.();
+      wasConnected = true;
     },
     onMessage: (msg: ServerMsg) => {
       if (msg.type === "state") {

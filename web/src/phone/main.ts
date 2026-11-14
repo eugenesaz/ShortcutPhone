@@ -1,5 +1,6 @@
 import "./phone.css";
 import { flashTile, showToast } from "./press-feedback";
+import { pageAssets, pageChanged } from "./page-update";
 import { contentSize, renderPhone, scrollStripToStart } from "./render";
 import { startPhone, type Phone } from "./session";
 import { ViewportTracker } from "./viewport";
@@ -11,6 +12,7 @@ const root = document.getElementById("app");
 
 if (root) {
   let phone: Phone | null = null;
+  const loadedAssets = pageAssets(document);
   const tracker = new ViewportTracker(localStorage);
   void startPhone({
     storage: localStorage,
@@ -28,6 +30,14 @@ if (root) {
     },
     vibrate: (ms) => {
       if ("vibrate" in navigator) navigator.vibrate(ms);
+    },
+    reconnected: () => {
+      // The Mac app may have updated: load its new page so this one doesn't miss new features.
+      void pageChanged(window.fetch.bind(window), location.pathname, loadedAssets).then(
+        (changed) => {
+          if (changed) location.reload();
+        },
+      );
     },
     viewport: () => {
       const page = root.querySelector<HTMLElement>(".page");

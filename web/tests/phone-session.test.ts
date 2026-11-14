@@ -266,6 +266,19 @@ describe("viewport reporting", () => {
     expect(FakeSocket.latest().sent).toHaveLength(2);
   });
 
+  test("reports reconnects, not the first connection", async () => {
+    const h = harness("/", "", "tok");
+    const reconnected = vi.fn();
+    h.deps.reconnected = reconnected;
+    await startPhone(h.deps);
+    FakeSocket.latest().open();
+    expect(reconnected).not.toHaveBeenCalled();
+    FakeSocket.latest().drop();
+    await vi.runOnlyPendingTimersAsync();
+    FakeSocket.latest().open();
+    expect(reconnected).toHaveBeenCalledTimes(1);
+  });
+
   test("resizing while offline sends nothing", async () => {
     const h = harness("/", "", "tok");
     h.deps.viewport = () => viewport;

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.1] - 2026-11-14
+
+- The phone page reloads itself when the Mac app comes back with a newer version. Before, a
+  page left open across an update kept the old code, which ignored new kinds of buttons such
+  as folders, so changes saved in the editor didn't appear until the page was reopened.
+
 ## [0.3.0] - 2026-11-14
 
 - Folders: a page button that opens a grid of more buttons on the phone, with a Back tile. Each
