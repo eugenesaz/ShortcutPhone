@@ -60,6 +60,9 @@ public actor PressDispatcher {
             guard case .page(let browser) = owner else { throw .unknownButton(id: buttonId) }
             started()
             try await launcher.open(url: url, inApp: browser)
+        case .folder:
+            // The phone opens folders itself; there is nothing to run on the Mac.
+            throw .unknownButton(id: buttonId)
         }
     }
 }

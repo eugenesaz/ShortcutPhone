@@ -3,20 +3,25 @@
 
 import type { Button, Config } from "../shared/config";
 import type { EditorApi } from "./api";
-import { isDirty, modelCapacity, renderEditor, type EditorModel } from "./render";
+import { isDirty, modelCapacity, moveValue, renderEditor, type EditorModel } from "./render";
 import {
   addButton,
   addPage,
   canAdd,
   getButton,
+  buttonPath,
   moveButton,
   movePage,
+  moveTargets,
+  moveToScope,
   newButtonId,
   removeButton,
   removePage,
   setColumns,
+  setFolderColumns,
   setPinned,
   updateButton,
+  withAfterPress,
   withFace,
   withType,
   type ButtonRef,
@@ -42,6 +47,13 @@ function scopeOf(node: HTMLElement): Scope | null {
   if (node.dataset.scope === "global") return { kind: "global" };
   if (node.dataset.scope === "page" && node.dataset.page !== undefined) {
     return { kind: "page", page: Number(node.dataset.page) };
+  }
+  if (
+    node.dataset.scope === "folder" &&
+    node.dataset.page !== undefined &&
+    node.dataset.folder !== undefined
+  ) {
+    return { kind: "folder", page: Number(node.dataset.page), folder: Number(node.dataset.folder) };
   }
   return null;
 }
@@ -171,9 +183,35 @@ export async function startEditor(deps: EditorDeps): Promise<Editor> {
         document.getElementById("field-label")?.focus();
         return;
       }
-      case "delete":
-        if (selection) edit(removeButton(model.config, selection), null);
+      case "add-folder": {
+        const scope = scopeOf(node);
+        if (scope?.kind !== "page" || !canAdd(model.config, scope, capacity)) return;
+        const folder: Button = {
+          id: newButtonId(model.config),
+          type: "folder",
+          label: "New folder",
+          afterPress: "back",
+          columns: null,
+          buttons: [],
+        };
+        const added = addButton(model.config, scope, folder);
+        edit(added.config, added.ref);
+        document.getElementById("field-label")?.focus();
         return;
+      }
+      case "delete": {
+        if (!selection) return;
+        const target = getButton(model.config, selection);
+        if (
+          target?.type === "folder" &&
+          target.buttons.length > 0 &&
+          !deps.confirm(`Delete this folder and its ${String(target.buttons.length)} buttons?`)
+        ) {
+          return;
+        }
+        edit(removeButton(model.config, selection), null);
+        return;
+      }
       case "move-left":
       case "move-right":
         if (selection) {
@@ -258,14 +296,49 @@ export async function startEditor(deps: EditorDeps): Promise<Editor> {
       return;
     }
     const ref = model.selection;
-    if (!ref || !getButton(model.config, ref)) return;
+    const selected = ref ? getButton(model.config, ref) : undefined;
+    if (!ref || !selected) return;
     const change = (fn: (button: Button) => Button): void => {
       edit(updateButton(model.config, ref, fn));
     };
+    /** Shows `error` under the field at `path` and puts the control back. */
+    const refuse = (path: string, error: string): void => {
+      model.blocked = { [path]: error };
+      render();
+    };
     switch (fieldName) {
       case "type":
+        if (
+          selected.type === "folder" &&
+          value !== "folder" &&
+          selected.buttons.length > 0 &&
+          !deps.confirm(
+            `Turn this folder into a button? Its ${String(selected.buttons.length)} buttons are deleted.`,
+          )
+        ) {
+          render(); // puts the select back
+          return;
+        }
         change((b) => withType(b, value as ButtonType, firstApp()));
         return;
+      case "afterPress":
+        change((b) => withAfterPress(b, value === "stay" ? "stay" : "back"));
+        return;
+      case "folder-columns": {
+        const columns = value === "" ? null : Number(value);
+        const result = setFolderColumns(model.config, ref, columns, modelCapacity(model));
+        if ("error" in result) refuse(`${buttonPath(ref)}.columns`, result.error);
+        else edit(result.config);
+        return;
+      }
+      case "move-to": {
+        const target = moveTargets(model.config, ref).find((t) => moveValue(t) === value);
+        if (!target) return;
+        const result = moveToScope(model.config, ref, target, modelCapacity(model));
+        if ("error" in result) refuse(`${buttonPath(ref)}.move`, result.error);
+        else edit(result.config, result.ref);
+        return;
+      }
       case "label":
       case "emoji":
         change((b) => withFace(b, fieldName, value));

@@ -24,6 +24,7 @@ The phone opens it in Chrome, pinned to the home screen. Tapping a button runs a
 6. **Look.** Buttons show the macOS app icon, or a custom color, label and emoji.
 7. **Configure.** I set up apps, pages and buttons in a web editor in the Mac's browser. The phone updates live when I save.
 8. **Pair.** The phone has to be paired once by scanning a QR code from the menu-bar app. Other devices on the Wi-Fi can't trigger actions.
+9. **Folders.** On a busy page (WoW), I group rarely used buttons, such as slash commands and emotes, into a folder tile. One tap opens it, and after I tap a button in it the phone goes back to the page, unless I set the folder to stay open.
 
 ### Out of scope for v1
 
@@ -69,6 +70,32 @@ The phone opens it in Chrome, pinned to the home screen. Tapping a button runs a
 - Uses one WebSocket to the agent. It reconnects automatically with backoff (max 5 s) and shows "Disconnected" while offline.
 - Every press gets haptic feedback (`navigator.vibrate`) and a visual flash: green for OK, red for an error.
 - Runs as a home-screen web app with a manifest and `display: standalone`. The screen stays on through Android's "Stay awake while charging" setting, because the Wake Lock API needs HTTPS.
+
+### Folders
+
+A **folder** is a page button (`"type": "folder"`) that holds other buttons. It keeps the main grid small, so the buttons used most stay big and in the same place.
+
+- **Pages only, one level.** Folders can't be in the global strip, and a folder can't hold a folder. A folder can hold every other button kind; its buttons belong to the page's app, so the focus guard applies to them as to any page button.
+- **Face.** A folder tile has a label and/or emoji and an optional color, like other buttons, plus a small folder marker in its corner so it reads as a folder, not an action.
+- **Opening.** Tapping a folder tile opens it in place of the page grid. Nothing is sent to the Mac. The phone gives a short vibration.
+  - The header shows `‹ <app name> › <folder name>`. Tapping it goes back.
+  - The first tile of the folder grid is always a **Back** tile (top-left, same place every time).
+  - The folder grid uses the same dynamic grid as a page (with its own optional `columns` override, 1–8). The Back tile counts as one of its tiles.
+- **After a tap** (`afterPress`, per folder):
+  - `"back"` (default): the phone returns to the page grid right after the tap is sent. It suits one-off commands.
+  - `"stay"`: the folder stays open. It suits sets you tap several of in a row.
+  - Either way, press feedback still shows: the button's tile flashes if it is on screen, otherwise the folder's tile does. Errors still show a toast.
+- **Going back on its own.** An open folder closes and the page grid shows again when:
+  - the frontmost app changes (even if it changes back), or the page or folder is gone after a config change;
+  - nothing on the phone is tapped for **30 s**.
+- **Capacity.** A folder holds up to the page capacity for its `columns` override, minus one for the Back tile. The editor and `PUT /api/config` enforce it the same way as for pages. The folder tile itself takes one place on its page.
+- **Protocol.** `state` carries folders with their buttons. A press names the inner button's id, which is unique across the config. Pressing a folder's own id returns `unknown_button`.
+- **Editor.**
+  - "Folder" is one of the action types for page buttons. Turning a folder with buttons into another type asks first, because its buttons are deleted.
+  - Selecting a folder (or a button in it) opens its contents under the page's tiles, with its own Add button and "N / max" counter.
+  - The folder form has **After a tap: Go back to the page / Stay in the folder** and **Columns**.
+  - Every page button has a **Move to** menu (the page, or one of its folders), so an existing page can be sorted into folders without retyping buttons. A move into a full folder or page is refused with a reason.
+- The config schema stays version 1: folders are a new button kind, and configs without them are unchanged.
 
 ### Editor (`/editor`)
 
@@ -184,7 +211,14 @@ The config lives at `~/Library/Application Support/ShortcutPhone/config.json`. I
       "columns": null,
       "buttons": [
         { "id": "btn_3", "type": "text", "label": "LGTM", "emoji": "👍", "text": "LGTM, merging." },
-        { "id": "btn_4", "type": "keys", "label": "Jump to", "keys": "cmd+k" }
+        { "id": "btn_4", "type": "keys", "label": "Jump to", "keys": "cmd+k" },
+        {
+          "id": "btn_5", "type": "folder", "label": "Replies", "emoji": "💬",
+          "afterPress": "back", "columns": null,
+          "buttons": [
+            { "id": "btn_6", "type": "text", "label": "Thanks", "text": "Thanks!" }
+          ]
+        }
       ]
     }
   ]
@@ -369,7 +403,9 @@ export function parseServerMsg(raw: string): ServerMsg | null {
 12. On the Pixel 5, the phone UI **never scrolls**, in either orientation. Pages with 1, 4, 12, 24 and 55 buttons fill the page area with tiles of at least 56 px. A `columns` override is honored. Covered by grid-fit unit tests and a manual check.
 13. Once a page is at capacity, the editor disables Add button. `PUT /api/config` returns a field-level error for any page over capacity, or for a `columns` value that makes tiles smaller than 56 px. Covered by tests.
 14. In World of Warcraft (focused, windowed or fullscreen), a single-key button such as `"1"` triggers the action bound to that key.
-15. `./scripts/check.sh` passes, and `ShortcutPhoneCore` line coverage is at least 85%.
+15. A folder tile opens its folder on the phone without contacting the Mac. A tap on a button in a `"back"` folder runs it and returns to the page grid; a `"stay"` folder stays open. An open folder closes when the frontmost app changes and after 30 s without a tap. Covered by phone render and session tests.
+16. `PUT /api/config` rejects folders in the global strip, folders inside folders, and folders over their capacity (page capacity minus the Back tile), with field-level errors such as `pages[0].buttons[3].buttons`. Pressing a button inside a folder runs it with the page's focus guard. Covered by tests.
+17. `./scripts/check.sh` passes, and `ShortcutPhoneCore` line coverage is at least 85%.
 
 ## Decisions
 

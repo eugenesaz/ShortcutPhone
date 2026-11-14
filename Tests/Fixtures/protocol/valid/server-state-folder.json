@@ -1,0 +1,32 @@
+{
+  "type": "state",
+  "frontmost": { "bundleId": "com.blizzard.worldofwarcraft", "name": "World of Warcraft" },
+  "global": [],
+  "page": {
+    "bundleId": "com.blizzard.worldofwarcraft",
+    "columns": null,
+    "buttons": [
+      { "id": "btn_1", "type": "keys", "label": "Fireball", "keys": "1" },
+      {
+        "id": "btn_2",
+        "type": "folder",
+        "label": "Social",
+        "emoji": "💬",
+        "afterPress": "back",
+        "columns": null,
+        "buttons": [
+          { "id": "btn_3", "type": "text", "label": "Dance", "text": "/dance" },
+          { "id": "btn_4", "type": "keys", "label": "Map", "keys": "m" }
+        ]
+      },
+      {
+        "id": "btn_5",
+        "type": "folder",
+        "label": "Professions",
+        "afterPress": "stay",
+        "columns": 4,
+        "buttons": []
+      }
+    ]
+  }
+}

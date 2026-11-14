@@ -48,7 +48,7 @@ export function configIssues(config: Config): Issue[] {
   }
 
   const seenIds = new Set<string>();
-  const check = (button: Button, path: string, globalStrip: boolean): void => {
+  const check = (button: Button, path: string, globalStrip: boolean, inFolder = false): void => {
     if (button.id === "") add(`${path}.id`, "is required");
     else if (seenIds.has(button.id)) add(`${path}.id`, `duplicate id ${button.id}`);
     else seenIds.add(button.id);
@@ -76,6 +76,17 @@ export function configIssues(config: Config): Issue[] {
           add(`${path}.keys`, "is not a key combo like cmd+shift+p, 1, f5 or space");
         }
         break;
+      case "folder":
+        if (globalStrip) add(`${path}.type`, "global buttons must be app buttons");
+        if (inFolder) add(`${path}.type`, "folders can't contain folders");
+        if (!hasFace(button)) add(`${path}.label`, "needs a label or an emoji");
+        if (button.columns !== null && (button.columns < 1 || button.columns > 8)) {
+          add(`${path}.columns`, "must be between 1 and 8");
+        }
+        button.buttons.forEach((inner, i) => {
+          check(inner, `${path}.buttons[${String(i)}]`, false, true);
+        });
+        return;
     }
     if (!hasFace(button)) add(`${path}.label`, "needs a label or an emoji");
   };
@@ -103,19 +114,38 @@ export function configIssues(config: Config): Issue[] {
 export function capacityIssues(config: Config, capacity: EffectiveCapacity): Issue[] {
   // The global strip has no limit: it scrolls.
   const issues: Issue[] = [];
-  config.pages.forEach((page, p) => {
-    const max = capacity.page(page.columns);
+  const check = (
+    path: string,
+    count: number,
+    columns: number | null,
+    max: number | null,
+    holder: string,
+  ): void => {
     if (max === null) {
       issues.push({
-        path: `pages[${String(p)}].columns`,
-        message: `${String(page.columns ?? 0)} columns make tiles smaller than ${String(MIN_TILE)} px on a paired phone`,
+        path: `${path}.columns`,
+        message: `${String(columns ?? 0)} columns make tiles smaller than ${String(MIN_TILE)} px on a paired phone`,
       });
-    } else if (page.buttons.length > max) {
+    } else if (count > max) {
       issues.push({
-        path: `pages[${String(p)}].buttons`,
-        message: `${String(page.buttons.length)} buttons, but the page holds ${String(max)}`,
+        path: `${path}.buttons`,
+        message: `${String(count)} buttons, but the ${holder} holds ${String(max)}`,
       });
     }
+  };
+  config.pages.forEach((page, p) => {
+    const path = `pages[${String(p)}]`;
+    check(path, page.buttons.length, page.columns, capacity.page(page.columns), "page");
+    page.buttons.forEach((button, b) => {
+      if (button.type !== "folder") return;
+      check(
+        `${path}.buttons[${String(b)}]`,
+        button.buttons.length,
+        button.columns,
+        capacity.folder(button.columns),
+        "folder (one place is the Back tile)",
+      );
+    });
   });
   return issues;
 }

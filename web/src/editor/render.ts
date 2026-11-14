@@ -2,15 +2,18 @@
 // `main.ts` restores focus afterwards. All user text goes through `textContent`.
 
 import { effectiveCapacity, type EffectiveCapacity } from "../shared/capacity";
-import { urlHost, type Button, type Config, type Page } from "../shared/config";
+import { urlHost, type Button, type Config, type FolderButton, type Page } from "../shared/config";
 import type { DeviceInfo, InstalledApp } from "./api";
 import {
   buttonPath,
   canAdd,
   canMove,
   getButton,
+  moveTargets,
   pageCapacityOf,
   sameConfig,
+  sameScope,
+  scopeCapacity,
   scopePath,
   type ButtonRef,
   type Scope,
@@ -107,23 +110,49 @@ function tileLabel(button: Button, apps: InstalledApp[]): string {
   return "";
 }
 
-const scopeAttrs = (scope: Scope): Attrs =>
-  scope.kind === "global"
-    ? { "data-scope": "global" }
-    : { "data-scope": "page", "data-page": scope.page };
+const scopeAttrs = (scope: Scope): Attrs => {
+  switch (scope.kind) {
+    case "global":
+      return { "data-scope": "global" };
+    case "page":
+      return { "data-scope": "page", "data-page": scope.page };
+    case "folder":
+      return { "data-scope": "folder", "data-page": scope.page, "data-folder": scope.folder };
+  }
+};
 
 function sameRef(a: ButtonRef | null, b: ButtonRef): boolean {
-  if (!a || a.index !== b.index || a.scope.kind !== b.scope.kind) return false;
-  return a.scope.kind === "global" || (b.scope.kind === "page" && a.scope.page === b.scope.page);
+  return a !== null && a.index === b.index && sameScope(a.scope, b.scope);
+}
+
+/** Index of the folder on page `page` whose contents are shown: selected, or holding the selection. */
+export function expandedFolder(model: EditorModel, page: number): number | null {
+  const ref = model.selection;
+  if (!ref || ref.scope.kind === "global" || ref.scope.page !== page) return null;
+  if (ref.scope.kind === "folder") return ref.scope.folder;
+  return model.config.pages[page]?.buttons[ref.index]?.type === "folder" ? ref.index : null;
+}
+
+/** The page's app, for buttons on a page or in one of its folders. */
+function scopeApp(model: EditorModel, scope: Scope): string | undefined {
+  return scope.kind === "global" ? undefined : model.config.pages[scope.page]?.bundleId;
+}
+
+function folderName(folder: FolderButton): string {
+  return [folder.emoji, folder.label].filter(Boolean).join(" ") || "Folder";
 }
 
 function tile(model: EditorModel, ref: ButtonRef, button: Button, issues: Issue[]): HTMLElement {
   const prefix = buttonPath(ref);
   const bad = issues.some((i) => i.path === prefix || i.path.startsWith(`${prefix}.`));
   const selected = sameRef(model.selection, ref);
+  const open =
+    button.type === "folder" &&
+    ref.scope.kind === "page" &&
+    expandedFolder(model, ref.scope.page) === ref.index;
   const node = el("button", {
     type: "button",
-    class: `tile${selected ? " tile--selected" : ""}${bad ? " tile--error" : ""}`,
+    class: `tile${button.type === "folder" ? " tile--folder" : ""}${open ? " tile--open" : ""}${selected ? " tile--selected" : ""}${bad ? " tile--error" : ""}`,
     "data-action": "select",
     "data-index": ref.index,
     "aria-pressed": selected ? "true" : "false",
@@ -133,11 +162,23 @@ function tile(model: EditorModel, ref: ButtonRef, button: Button, issues: Issue[
   if (button.color) node.style.setProperty("--tile-color", button.color);
   if (button.emoji) node.append(el("span", { class: "emoji" }, button.emoji));
   else if (button.type === "app") node.append(icon(button.bundleId, 64));
-  else if (button.type === "url" && ref.scope.kind === "page") {
-    node.append(icon(model.config.pages[ref.scope.page]?.bundleId ?? "", 64));
-  } else node.append(el("span", { class: "kind" }, button.type === "keys" ? "⌨" : "¶"));
+  else if (button.type === "url" && ref.scope.kind !== "global") {
+    node.append(icon(scopeApp(model, ref.scope) ?? "", 64));
+  } else {
+    const kind = button.type === "keys" ? "⌨" : button.type === "folder" ? "📁" : "¶";
+    node.append(el("span", { class: "kind" }, kind));
+  }
   const label = tileLabel(button, model.apps);
   if (label) node.append(el("span", { class: "label" }, label));
+  if (button.type === "folder") {
+    node.append(
+      el(
+        "span",
+        { class: "folder-badge", title: "Buttons in this folder" },
+        String(button.buttons.length),
+      ),
+    );
+  }
   if (button.pinned) node.append(el("span", { class: "pin", title: "Pinned" }, "📌"));
   return node;
 }
@@ -187,13 +228,30 @@ function tilesSection(
     el("span", { class: "label" }, scope.kind === "global" ? "Add app" : "Add button"),
   );
   grid.append(add);
+  if (scope.kind === "page") {
+    grid.append(
+      el(
+        "button",
+        {
+          type: "button",
+          class: "tile tile--add",
+          "data-action": "add-folder",
+          disabled: !addable,
+          title: addable ? "Add a folder of buttons" : "Full",
+          ...scopeAttrs(scope),
+        },
+        el("span", { class: "plus" }, "📁"),
+        el("span", { class: "label" }, "Add folder"),
+      ),
+    );
+  }
   const wrap = el("div", {}, grid);
   if (!addable) {
     wrap.append(
       el(
         "p",
         { class: "hint" },
-        "This page is full on the smallest paired phone. Remove a button, or change columns.",
+        `This ${scope.kind === "folder" ? "folder" : "page"} is full on the smallest paired phone. Remove a button, or change columns.`,
       ),
     );
   }
@@ -323,7 +381,38 @@ function pageCard(
   const blocked = model.blocked[`${path}.columns`];
   if (blocked) card.append(el("p", { class: "field-error", role: "alert" }, blocked));
   card.append(tilesSection(model, scope, page.buttons, issues, capacity));
+  const open = expandedFolder(model, p);
+  const folder = open === null ? undefined : page.buttons[open];
+  if (open !== null && folder?.type === "folder") {
+    card.append(folderContents(model, p, open, folder, issues, capacity));
+  }
   return card;
+}
+
+/** The open folder's buttons, shown under its page's tiles. */
+function folderContents(
+  model: EditorModel,
+  page: number,
+  index: number,
+  folder: FolderButton,
+  issues: Issue[],
+  capacity: EffectiveCapacity,
+): HTMLElement {
+  const scope: Scope = { kind: "folder", page, folder: index };
+  const after =
+    folder.afterPress === "back" ? "goes back to the page after a tap" : "stays open after a tap";
+  return el(
+    "div",
+    { class: "folder-contents", "data-section": "folder", "data-page": page, "data-folder": index },
+    el(
+      "div",
+      { class: "section-head" },
+      el("h4", {}, `📁 ${folderName(folder)}`),
+      el("span", { class: "muted" }, `Opens on the phone with a Back tile; ${after}.`),
+      counter(folder.buttons.length, scopeCapacity(model.config, scope, capacity)),
+    ),
+    tilesSection(model, scope, folder.buttons, issues, capacity),
+  );
 }
 
 /** `<select>` of apps: running first, then installed. Keeps `current` even if not installed. */
@@ -416,6 +505,13 @@ function buttonForm(
     ref.scope.kind === "global"
       ? "Global strip"
       : appName(model.apps, model.config.pages[ref.scope.page]?.bundleId ?? "");
+  const holder =
+    ref.scope.kind === "folder"
+      ? model.config.pages[ref.scope.page]?.buttons[ref.scope.folder]
+      : undefined;
+  const trail = [where];
+  if (holder?.type === "folder") trail.push(folderName(holder));
+  trail.push(button.type === "folder" ? "folder" : `button ${String(ref.index + 1)}`);
 
   const type = el("select", { id: "field-type", "data-field": "type", disabled: isGlobal });
   for (const [value, name] of [
@@ -423,7 +519,10 @@ function buttonForm(
     ["text", "Type text + Return"],
     ["keys", "Press keys"],
     ["url", "Open web page"],
+    ["folder", "Folder of buttons"],
   ] as const) {
+    // Folders live on pages only, and don't nest.
+    if (value === "folder" && ref.scope.kind !== "page") continue;
     type.append(el("option", { value }, name));
   }
   type.value = button.type;
@@ -431,12 +530,16 @@ function buttonForm(
   const form = el(
     "form",
     { class: "button-form", "data-form": "button", novalidate: true },
-    el("h2", {}, `${where} › button ${String(ref.index + 1)}`),
+    el("h2", {}, trail.join(" › ")),
     field(
       "Action",
       type,
       err("type"),
-      isGlobal ? "The global strip holds app buttons only." : undefined,
+      isGlobal
+        ? "The global strip holds app buttons only."
+        : ref.scope.kind === "folder"
+          ? "Folders can't hold other folders."
+          : undefined,
     ),
   );
 
@@ -502,6 +605,9 @@ function buttonForm(
       );
       break;
     }
+    case "folder":
+      form.append(...folderFields(model, ref, button, err));
+      break;
   }
 
   const label = el("input", {
@@ -567,6 +673,9 @@ function buttonForm(
     ),
   );
 
+  const move = moveField(model, ref);
+  if (move) form.append(move);
+
   form.append(
     el(
       "div",
@@ -581,12 +690,104 @@ function buttonForm(
         { type: "button", "data-action": "move-right", disabled: !canMove(model.config, ref, 1) },
         "Move →",
       ),
-      el("button", { type: "button", class: "danger", "data-action": "delete" }, "Delete button"),
+      el(
+        "button",
+        { type: "button", class: "danger", "data-action": "delete" },
+        button.type === "folder" ? "Delete folder" : "Delete button",
+      ),
     ),
   );
   const idError = err("id");
   if (idError) form.append(idError);
   return form;
+}
+
+function folderFields(
+  model: EditorModel,
+  ref: ButtonRef,
+  folder: FolderButton,
+  err: (name: string) => HTMLElement | null,
+): HTMLElement[] {
+  const capacity = modelCapacity(model);
+  const after = el("select", { id: "field-afterPress", "data-field": "afterPress" });
+  after.append(
+    el("option", { value: "back" }, "Go back to the page"),
+    el("option", { value: "stay" }, "Stay in the folder"),
+  );
+  after.value = folder.afterPress;
+
+  const columns = el("select", { id: "field-folder-columns", "data-field": "folder-columns" });
+  for (const value of [null, 1, 2, 3, 4, 5, 6, 7, 8]) {
+    const max = capacity.folder(value);
+    const name = value === null ? "Auto" : `${String(value)} col`;
+    const hint = max === null ? "too narrow" : `up to ${String(max)}`;
+    const option = el(
+      "option",
+      { value: value === null ? "" : String(value) },
+      `${name} (${hint})`,
+    );
+    option.selected = folder.columns === value;
+    columns.append(option);
+  }
+  const blocked = model.blocked[`${buttonPath(ref)}.columns`];
+  return [
+    field(
+      "After a tap",
+      after,
+      err("afterPress"),
+      "Go back suits one-off commands. Stay suits buttons you tap several of in a row. An open folder also closes when you switch apps, or after 30 s without a tap.",
+    ),
+    field(
+      "Columns",
+      columns,
+      blocked ? el("p", { class: "field-error", role: "alert" }, blocked) : err("columns"),
+      "The folder's first tile is always Back, so it holds one button less than a page.",
+    ),
+    el(
+      "p",
+      { class: "hint" },
+      `Holds ${String(folder.buttons.length)} button${folder.buttons.length === 1 ? "" : "s"}, shown under the page. Use Move to on a page button to put it here.`,
+    ),
+  ];
+}
+
+/** `page` or `folder:<index>`, the value of a Move to option. */
+export function moveValue(scope: Scope): string {
+  return scope.kind === "folder" ? `folder:${String(scope.folder)}` : "page";
+}
+
+function moveField(model: EditorModel, ref: ButtonRef): HTMLElement | null {
+  const targets = moveTargets(model.config, ref);
+  if (targets.length < 2 || ref.scope.kind === "global") return null;
+  const page = model.config.pages[ref.scope.page];
+  const capacity = modelCapacity(model);
+  const select = el("select", { id: "field-move-to", "data-field": "move-to" });
+  for (const target of targets) {
+    const folder = target.kind === "folder" ? page?.buttons[target.folder] : undefined;
+    const here = sameScope(target, ref.scope);
+    const max = scopeCapacity(model.config, target, capacity);
+    const full = !here && (max === null || buttonsCount(model.config, target) >= max);
+    const name =
+      folder?.type === "folder" ? `📁 ${folderName(folder)}` : "The page (not in a folder)";
+    select.append(
+      el("option", { value: moveValue(target), disabled: full }, full ? `${name} (full)` : name),
+    );
+  }
+  select.value = moveValue(ref.scope);
+  const blocked = model.blocked[`${buttonPath(ref)}.move`];
+  return field(
+    "Move to",
+    select,
+    blocked ? el("p", { class: "field-error", role: "alert" }, blocked) : null,
+  );
+}
+
+function buttonsCount(config: Config, scope: Scope): number {
+  if (scope.kind === "global") return config.global.length;
+  const page = config.pages[scope.page];
+  if (scope.kind === "page") return page?.buttons.length ?? 0;
+  const folder = page?.buttons[scope.folder];
+  return folder?.type === "folder" ? folder.buttons.length : 0;
 }
 
 function panel(model: EditorModel, issues: Issue[]): HTMLElement {
@@ -674,10 +875,16 @@ export function describePath(model: EditorModel, path: string): string {
     return "";
   });
   const pageRest = rest.replace(
-    /^pages\[(\d+)\](?:\.buttons(?:\[(\d+)\])?)?/,
-    (_m, p: string, i: string | undefined) => {
-      parts.push(appName(model.apps, model.config.pages[Number(p)]?.bundleId ?? `page ${p}`));
-      if (i !== undefined) parts.push(`button ${String(Number(i) + 1)}`);
+    /^pages\[(\d+)\](?:\.buttons(?:\[(\d+)\](?:\.buttons(?:\[(\d+)\])?)?)?)?/,
+    (_m, p: string, i: string | undefined, j: string | undefined) => {
+      const page = model.config.pages[Number(p)];
+      parts.push(appName(model.apps, page?.bundleId ?? `page ${p}`));
+      if (i === undefined) return "";
+      const button = page?.buttons[Number(i)];
+      if (button?.type === "folder") {
+        parts.push(folderName(button));
+        if (j !== undefined) parts.push(`button ${String(Number(j) + 1)}`);
+      } else parts.push(`button ${String(Number(i) + 1)}`);
       return "";
     },
   );

@@ -2,10 +2,13 @@
 // input. Capacity guards live here too, so the UI and the tests share them.
 
 import { MIN_TILE, type EffectiveCapacity } from "../shared/capacity";
-import type { Button, Config } from "../shared/config";
+import { allButtons, type AfterPress, type Button, type Config } from "../shared/config";
 
-/** Where a button lives: the global strip, or page `page`. */
-export type Scope = { kind: "global" } | { kind: "page"; page: number };
+/** Where a button lives: the global strip, page `page`, or folder `folder` of that page. */
+export type Scope =
+  | { kind: "global" }
+  | { kind: "page"; page: number }
+  | { kind: "folder"; page: number; folder: number };
 
 export interface ButtonRef {
   scope: Scope;
@@ -17,7 +20,22 @@ export type ButtonType = Button["type"];
 const clone = (config: Config): Config => JSON.parse(JSON.stringify(config)) as Config;
 
 export function buttonsIn(config: Config, scope: Scope): Button[] {
-  return scope.kind === "global" ? config.global : (config.pages[scope.page]?.buttons ?? []);
+  switch (scope.kind) {
+    case "global":
+      return config.global;
+    case "page":
+      return config.pages[scope.page]?.buttons ?? [];
+    case "folder": {
+      const folder = config.pages[scope.page]?.buttons[scope.folder];
+      return folder?.type === "folder" ? folder.buttons : [];
+    }
+  }
+}
+
+export function sameScope(a: Scope, b: Scope): boolean {
+  if (a.kind === "global" || b.kind === "global") return a.kind === b.kind;
+  if (a.kind === "page" || b.kind === "page") return a.kind === b.kind && a.page === b.page;
+  return a.page === b.page && a.folder === b.folder;
 }
 
 export function getButton(config: Config, ref: ButtonRef): Button | undefined {
@@ -28,17 +46,24 @@ export function getButton(config: Config, ref: ButtonRef): Button | undefined {
 export function buttonPath(ref: ButtonRef): string {
   return ref.scope.kind === "global"
     ? `global[${String(ref.index)}]`
-    : `pages[${String(ref.scope.page)}].buttons[${String(ref.index)}]`;
+    : `${scopePath(ref.scope)}[${String(ref.index)}]`;
 }
 
 export function scopePath(scope: Scope): string {
-  return scope.kind === "global" ? "global" : `pages[${String(scope.page)}].buttons`;
+  switch (scope.kind) {
+    case "global":
+      return "global";
+    case "page":
+      return `pages[${String(scope.page)}].buttons`;
+    case "folder":
+      return `pages[${String(scope.page)}].buttons[${String(scope.folder)}].buttons`;
+  }
 }
 
 /** `btn_` + 8 random hex digits, unique within `config`. */
 export function newButtonId(config: Config, random: () => number = Math.random): string {
   const taken = new Set(
-    [...config.global, ...config.pages.flatMap((p) => p.buttons)].map((b) => b.id),
+    allButtons([...config.global, ...config.pages.flatMap((p) => p.buttons)]).map((b) => b.id),
   );
   for (;;) {
     const hex = Math.floor(random() * 0x100000000)
@@ -58,10 +83,30 @@ export function pageCapacityOf(
   return capacity.page(config.pages[page]?.columns ?? null);
 }
 
-/** The global strip scrolls, so it never fills up; pages do. */
+/**
+ * Max buttons in `scope`: `Infinity` for the global strip (it scrolls), `null` when the
+ * page's or folder's `columns` override doesn't fit. A folder loses one place to its Back tile.
+ */
+export function scopeCapacity(
+  config: Config,
+  scope: Scope,
+  capacity: EffectiveCapacity,
+): number | null {
+  switch (scope.kind) {
+    case "global":
+      return Infinity;
+    case "page":
+      return pageCapacityOf(config, scope.page, capacity);
+    case "folder": {
+      const folder = config.pages[scope.page]?.buttons[scope.folder];
+      return folder?.type === "folder" ? capacity.folder(folder.columns) : null;
+    }
+  }
+}
+
+/** The global strip scrolls, so it never fills up; pages and folders do. */
 export function canAdd(config: Config, scope: Scope, capacity: EffectiveCapacity): boolean {
-  if (scope.kind === "global") return true;
-  const max = pageCapacityOf(config, scope.page, capacity);
+  const max = scopeCapacity(config, scope, capacity);
   return max !== null && buttonsIn(config, scope).length < max;
 }
 
@@ -139,7 +184,95 @@ export function withType(button: Button, type: ButtonType, defaultBundleId: stri
       return { ...face, type, keys: "" };
     case "url":
       return { ...face, type, url: "https://" };
+    case "folder":
+      return { ...face, type, afterPress: "back", columns: null, buttons: [] };
   }
+}
+
+/** Where a page button can be moved: its page, or one of the page's folders. */
+export function moveTargets(config: Config, ref: ButtonRef): Scope[] {
+  if (ref.scope.kind === "global") return [];
+  const page = ref.scope.page;
+  const moving = getButton(config, ref);
+  const targets: Scope[] = [{ kind: "page", page }];
+  // Folders don't nest, so a folder can only live on its page.
+  if (moving?.type === "folder") return targets;
+  config.pages[page]?.buttons.forEach((button, folder) => {
+    if (button.type === "folder") targets.push({ kind: "folder", page, folder });
+  });
+  return targets;
+}
+
+/**
+ * Moves a page button to the end of another place on the same page (the page, or a folder).
+ * Refused, with the reason, when that place is full.
+ */
+export function moveToScope(
+  config: Config,
+  ref: ButtonRef,
+  target: Scope,
+  capacity: EffectiveCapacity,
+): { config: Config; ref: ButtonRef } | { error: string } {
+  if (sameScope(ref.scope, target)) return { config, ref };
+  if (!moveTargets(config, ref).some((scope) => sameScope(scope, target))) {
+    return { error: "A button can move only to its page or one of that page's folders." };
+  }
+  if (!canAdd(config, target, capacity)) {
+    return {
+      error:
+        target.kind === "folder"
+          ? "That folder is full. Remove a button from it, or change its columns."
+          : "The page is full. Remove a button from it, or change its columns.",
+    };
+  }
+  if (target.kind === "global") return { config, ref };
+  const next = clone(config);
+  const page = next.pages[target.page];
+  // Find the target folder by identity: taking a button off the page can shift its index.
+  const targetFolder = target.kind === "folder" ? page?.buttons[target.folder] : undefined;
+  const [button] = buttonsIn(next, ref.scope).splice(ref.index, 1);
+  if (!button || !page) return { config, ref };
+  let scope: Scope = { kind: "page", page: target.page };
+  if (targetFolder?.type === "folder") {
+    scope = { kind: "folder", page: target.page, folder: page.buttons.indexOf(targetFolder) };
+  }
+  const list = buttonsIn(next, scope);
+  list.push(button);
+  return { config: next, ref: { scope, index: list.length - 1 } };
+}
+
+/** Sets what a folder does after a tap. */
+export function withAfterPress(button: Button, afterPress: AfterPress): Button {
+  return button.type === "folder" ? { ...button, afterPress } : button;
+}
+
+/**
+ * Changes a folder's `columns`. Refused, with the reason, if the override makes tiles too
+ * small or leaves fewer places than the folder has buttons.
+ */
+export function setFolderColumns(
+  config: Config,
+  ref: ButtonRef,
+  columns: number | null,
+  capacity: EffectiveCapacity,
+): { config: Config } | { error: string } {
+  const folder = getButton(config, ref);
+  if (folder?.type !== "folder") return { config };
+  const max = capacity.folder(columns);
+  const what = columns === null ? "Auto columns" : `${String(columns)} columns`;
+  if (max === null) {
+    return {
+      error: `${what} make tiles smaller than ${String(MIN_TILE)} px on a paired phone.`,
+    };
+  }
+  if (folder.buttons.length > max) {
+    return {
+      error: `${what} hold only ${String(max)} buttons in a folder (one place is the Back tile); this folder has ${String(folder.buttons.length)}. Remove buttons first.`,
+    };
+  }
+  return {
+    config: updateButton(config, ref, (b) => (b.type === "folder" ? { ...b, columns } : b)),
+  };
 }
 
 /** Sets an optional face field; an empty value removes it. */

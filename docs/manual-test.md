@@ -93,6 +93,18 @@ the PR or release notes and fill in the results.
 | E4 | Inline errors | Clear a text button's text, or type `cmd+nope` as keys: red text under the field, a red tile, and Save turns off | |
 | E5 | Broken file | Break `config.json` by hand and reload the editor: a red "config.json on disk is invalid" banner and the last good config. Save fixes the file and the banner goes away | |
 
+## Folders
+
+| # | Check | How | Result |
+|---|---|---|---|
+| F1 | Open and back | On a page, **Add folder**, add two text buttons inside, Save. On the phone the folder tile has a stack edge and a "2" badge. Tap it: a Back tile top-left, the two buttons, and `‹ App › Folder` in the header. Back tile and header both return to the page | |
+| F2 | Back after a tap | In a "Go back to the page" folder, tap a button: it runs on the Mac, the page grid returns at once, and the folder tile flashes green | |
+| F3 | Stay open | Set the folder to "Stay in the folder". Tap two buttons in a row: both run, the folder stays open, and each tile flashes | |
+| F4 | Closes by itself | Open a folder, then switch apps on the Mac and back: the page shows, not the folder. Open it again and wait 30 s: it closes | |
+| F5 | Focus guard | Open a folder of text buttons, switch the Mac to another app, tap one: it's refused with "The app changed" and nothing is typed | |
+| F6 | Capacity | Fill a folder until **Add button** turns off: the phone shows every button plus Back, at least 56 px, no scroll. **Move to** a full folder is greyed out | |
+| F7 | WoW | In World of Warcraft, put key buttons in a folder bound to slash-command macros: each tap triggers the macro, fullscreen and windowed | |
+
 ## Menu and home screen
 
 | # | Check | How | Result |

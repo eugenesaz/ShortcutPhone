@@ -22,8 +22,8 @@ if (root) {
     render: (model) => {
       renderPhone(root, model);
     },
-    feedback: (buttonId, ok, message) => {
-      flashTile(root, buttonId, ok);
+    feedback: (buttonId, ok, message, folderId) => {
+      flashTile(root, folderId === undefined ? buttonId : [buttonId, folderId], ok);
       if (message) showToast(root, message);
     },
     vibrate: (ms) => {
@@ -52,8 +52,14 @@ if (root) {
 
   // One delegated listener survives every re-render.
   root.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target.closest(".tile") : null;
-    if (target instanceof HTMLElement && target.dataset.buttonId) {
+    const target =
+      event.target instanceof Element ? event.target.closest(".tile, [data-action]") : null;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.dataset.action === "back") {
+      phone?.closeFolder();
+    } else if (target.dataset.folderId) {
+      phone?.openFolder(target.dataset.folderId);
+    } else if (target.dataset.buttonId) {
       phone?.press(target.dataset.buttonId);
       if (target.closest(".strip")) scrollStripToStart(root);
     }

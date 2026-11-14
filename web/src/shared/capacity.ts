@@ -48,6 +48,11 @@ export function stripCapacity(viewport: Viewport): number {
 export interface EffectiveCapacity {
   /** Max buttons on a page with this `columns` override; `null` if the override doesn't fit. */
   page(columns: number | null): number | null;
+  /**
+   * Max buttons in a folder with this `columns` override: the page capacity minus the Back
+   * tile. `null` if the override doesn't fit.
+   */
+  folder(columns: number | null): number | null;
   /** Max buttons in the global strip. */
   strip: number;
 }
@@ -55,7 +60,7 @@ export interface EffectiveCapacity {
 /** The smallest capacity across all devices and both orientations; Pixel 5 if none reported. */
 export function effectiveCapacity(viewports: readonly Viewport[]): EffectiveCapacity {
   const used = viewports.length > 0 ? viewports : [PIXEL5];
-  return {
+  const capacity: EffectiveCapacity = {
     page(columns) {
       let result = Infinity;
       for (const vp of used) {
@@ -67,6 +72,11 @@ export function effectiveCapacity(viewports: readonly Viewport[]): EffectiveCapa
       }
       return result;
     },
+    folder(columns) {
+      const page = capacity.page(columns);
+      return page === null ? null : Math.max(0, page - 1);
+    },
     strip: Math.min(...used.map(stripCapacity)),
   };
+  return capacity;
 }

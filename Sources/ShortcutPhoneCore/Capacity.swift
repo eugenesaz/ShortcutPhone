@@ -71,6 +71,12 @@ public struct EffectiveCapacity: Equatable, Sendable {
         return result
     }
 
+    /// Max buttons in a folder with this `columns` override: the page capacity minus the Back
+    /// tile. `nil` if the override doesn't fit.
+    public func folder(columns: Int?) -> Int? {
+        page(columns: columns).map { max(0, $0 - 1) }
+    }
+
     /// Global-strip apps that fit without scrolling. Informational: the strip scrolls.
     public var strip: Int {
         viewports.map(Capacity.strip).min() ?? 0
@@ -87,24 +93,38 @@ extension Viewport {
 }
 
 extension EffectiveCapacity {
-    /// Field-level problems that would hide page buttons or shrink tiles below 56 px. The
-    /// global strip has no limit: it scrolls.
+    /// Field-level problems that would hide page or folder buttons or shrink tiles below
+    /// 56 px. The global strip has no limit: it scrolls.
     public func issues(in config: Config) -> [ConfigIssue] {
         var issues: [ConfigIssue] = []
-        for (index, page) in config.pages.enumerated() {
-            guard let max = self.page(columns: page.columns) else {
+        /// `max` is `nil` when the `columns` override makes tiles too small.
+        func check(_ path: String, count: Int, columns: Int?, max: Int?, holder: String) {
+            guard let max else {
                 issues.append(
                     ConfigIssue(
-                        path: "pages[\(index)].columns",
-                        message: "\(page.columns ?? 0) columns make tiles smaller than "
+                        path: "\(path).columns",
+                        message: "\(columns ?? 0) columns make tiles smaller than "
                             + "\(Int(Capacity.minTile)) px on a paired phone"))
-                continue
+                return
             }
-            if page.buttons.count > max {
+            if count > max {
                 issues.append(
                     ConfigIssue(
-                        path: "pages[\(index)].buttons",
-                        message: "\(page.buttons.count) buttons, but the page holds \(max)"))
+                        path: "\(path).buttons",
+                        message: "\(count) buttons, but the \(holder) holds \(max)"))
+            }
+        }
+        for (index, page) in config.pages.enumerated() {
+            let path = "pages[\(index)]"
+            check(
+                path, count: page.buttons.count, columns: page.columns,
+                max: self.page(columns: page.columns), holder: "page")
+            for (b, button) in page.buttons.enumerated() {
+                guard let folder = button.folder else { continue }
+                check(
+                    "\(path).buttons[\(b)]", count: folder.buttons.count, columns: folder.columns,
+                    max: self.folder(columns: folder.columns),
+                    holder: "folder (one place is the Back tile)")
             }
         }
         return issues

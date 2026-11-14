@@ -33,7 +33,25 @@ export interface UrlButton extends ButtonFace {
   url: string;
 }
 
-export type Button = AppButton | TextButton | KeysButton | UrlButton;
+/** What the phone does after a button in a folder is tapped. */
+export type AfterPress = "back" | "stay";
+
+/**
+ * A group of buttons the phone opens in place of the page grid. Page buttons only, never
+ * nested. The phone opens it itself; nothing is sent to the Mac.
+ */
+export interface FolderButton extends ButtonFace {
+  type: "folder";
+  afterPress: AfterPress;
+  /** Fixed column count 1–8, or `null` to let the phone pick. */
+  columns: number | null;
+  buttons: Button[];
+}
+
+export type Button = AppButton | TextButton | KeysButton | UrlButton | FolderButton;
+
+/** Every button kind a folder can hold. */
+export type LeafButton = Exclude<Button, FolderButton>;
 
 /** The site's host name without `www.`, used when a `url` button has no label. */
 export function urlHost(url: string): string {
@@ -72,6 +90,12 @@ export function isButton(value: unknown): value is Button {
       return isString(value.keys);
     case "url":
       return isString(value.url);
+    case "folder":
+      return (
+        (value.afterPress === "back" || value.afterPress === "stay") &&
+        (value.columns === null || isNumber(value.columns)) &&
+        isArrayOf(value.buttons, isButton)
+      );
     default:
       return false;
   }
@@ -95,4 +119,9 @@ export function isConfig(value: unknown): value is Config {
     isArrayOf(value.global, isButton) &&
     isArrayOf(value.pages, isPage)
   );
+}
+
+/** Every button in `buttons`, including those inside folders. */
+export function allButtons(buttons: readonly Button[]): Button[] {
+  return buttons.flatMap((b) => (b.type === "folder" ? [b, ...b.buttons] : [b]));
 }

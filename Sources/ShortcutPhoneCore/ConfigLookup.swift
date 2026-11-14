@@ -10,8 +10,11 @@ extension Config {
             return (button, .global)
         }
         for page in pages {
-            if let button = page.buttons.first(where: { $0.id == buttonId }) {
-                return (button, .page(bundleId: page.bundleId))
+            for button in page.buttons {
+                if button.id == buttonId { return (button, .page(bundleId: page.bundleId)) }
+                if let inner = button.folder?.buttons.first(where: { $0.id == buttonId }) {
+                    return (inner, .page(bundleId: page.bundleId))
+                }
             }
         }
         return nil

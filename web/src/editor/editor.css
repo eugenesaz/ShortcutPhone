@@ -473,3 +473,57 @@ input[type="color"] {
 .dot--on {
   background: var(--ok);
 }
+
+/* Folders */
+.tile--folder {
+  box-shadow:
+    4px -4px 0 -2px var(--surface),
+    4px -4px 0 0 var(--border);
+  overflow: visible;
+}
+
+.tile .folder-badge {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.tile--open {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
+.tile--open.tile--selected {
+  border-style: solid;
+}
+
+.folder-contents {
+  margin-top: 14px;
+  padding: 12px;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.folder-contents .section-head {
+  margin-bottom: 10px;
+}
+
+.folder-contents h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.folder-contents .section-head .muted {
+  margin-right: auto;
+  font-size: 12px;
+}

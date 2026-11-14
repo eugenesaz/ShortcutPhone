@@ -14,7 +14,7 @@ public enum ConfigValidator {
         }
 
         var seenIds = Set<String>()
-        func check(_ button: Button, at path: String, globalStrip: Bool) {
+        func check(_ button: Button, at path: String, globalStrip: Bool, inFolder: Bool = false) {
             if button.id.isEmpty {
                 add("\(path).id", "is required")
             } else if !seenIds.insert(button.id).inserted {
@@ -43,6 +43,17 @@ public enum ConfigValidator {
                     add("\(path).keys", "is not a key combo like cmd+shift+p, 1, f5 or space")
                 }
                 if !hasFace(button) { add("\(path).label", "needs a label or an emoji") }
+            case .folder(let folder):
+                if globalStrip { add("\(path).type", "global buttons must be app buttons") }
+                if inFolder { add("\(path).type", "folders can't contain folders") }
+                if !hasFace(button) { add("\(path).label", "needs a label or an emoji") }
+                if let columns = folder.columns, !(1...8).contains(columns) {
+                    add("\(path).columns", "must be between 1 and 8")
+                }
+                for (index, inner) in folder.buttons.enumerated() {
+                    check(
+                        inner, at: "\(path).buttons[\(index)]", globalStrip: false, inFolder: true)
+                }
             }
         }
 

@@ -20,6 +20,8 @@ focus: switch apps on the Mac and the phone shows that app's buttons.
   commands). Your clipboard is restored afterwards.
 - **Key buttons** send a shortcut such as `cmd+shift+p`, or a single key such as `1` or `f5`.
 - **Web page buttons** open a URL in the page's browser.
+- **Folders** group rarely used buttons, such as slash commands and emotes, behind one tile. After
+  a tap the phone goes back to the page, or the folder stays open if you prefer.
 - **Pages per app**, plus a strip of app buttons that's always visible.
 - **No scrolling.** The grid sizes itself to fit every button on the screen.
 - **Edited in your browser**, and phones update as soon as you save.
@@ -80,6 +82,11 @@ open /Applications/ShortcutPhone.app
 | Text | Pastes the text into the focused app, then presses Return | Page buttons only. Needs Accessibility |
 | Keys | Sends a key combo, such as `cmd+shift+p`, `ctrl+alt+t`, `f5` or `1` | Page buttons only. Needs Accessibility |
 | Web page | Opens an `http`/`https` URL in the page's app | Page buttons only. Put it on a browser's page |
+| Folder | Opens a grid of more buttons on the phone, with a Back tile first | Page buttons only. Folders can't hold folders |
+
+A folder either goes back to the page after a tap (the default), or stays open. It also closes
+when you switch apps, or after 30 s without a tap. In the editor, use **Add folder** on a page,
+and **Move to** on any page button to put it into a folder.
 
 Text and key buttons run only while their page's app is still in front on the Mac. If focus
 moved before the tap arrived, the press is refused and the tile flashes red, so nothing gets

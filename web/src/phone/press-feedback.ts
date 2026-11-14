@@ -3,17 +3,25 @@
 const FLASH_MS = 400;
 const TOAST_MS = 2000;
 
-export function flashTile(root: HTMLElement, buttonId: string, ok: boolean): void {
-  const tile = [...root.querySelectorAll<HTMLElement>(".tile")].find(
-    (el) => el.dataset.buttonId === buttonId,
-  );
-  if (!tile) return;
+/**
+ * Flashes the first tile on screen for one of `ids`: a button's id, or the id of the folder
+ * holding it (after the folder has closed). Returns whether a tile was found.
+ */
+export function flashTile(root: HTMLElement, ids: string | string[], ok: boolean): boolean {
+  const tiles = [...root.querySelectorAll<HTMLElement>(".tile")];
+  let tile: HTMLElement | undefined;
+  for (const id of typeof ids === "string" ? [ids] : ids) {
+    tile = tiles.find((el) => el.dataset.buttonId === id || el.dataset.folderId === id);
+    if (tile) break;
+  }
+  if (!tile) return false;
   const cls = ok ? "tile--ok" : "tile--error";
   tile.classList.remove("tile--ok", "tile--error");
   tile.classList.add(cls);
   setTimeout(() => {
     tile.classList.remove(cls);
   }, FLASH_MS);
+  return true;
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;

@@ -1,6 +1,6 @@
 // Phone UI rendering. Rebuilds the DOM from the model on every update (pages are small).
 
-import { urlHost, type Button } from "../shared/config";
+import { urlHost, type Button, type FolderButton } from "../shared/config";
 import type { Size, StateMsg } from "../shared/protocol";
 import { gridFit } from "./grid-fit";
 
@@ -13,6 +13,29 @@ export interface PhoneModel {
   state: StateMsg | null;
   /** Full-screen message that replaces the buttons (e.g. "Not paired"). */
   notice?: string;
+  /** Id of the folder open on the current page, if any. */
+  folder?: string;
+}
+
+/** The open folder, if it is still on the shown page. */
+export function openFolder(model: PhoneModel): FolderButton | undefined {
+  if (model.folder === undefined) return undefined;
+  return findFolder(model.state, (b) => b.id === model.folder);
+}
+
+/** The folder on the shown page that holds button `buttonId`, if any. */
+export function folderHolding(state: StateMsg | null, buttonId: string): FolderButton | undefined {
+  return findFolder(state, (b) => b.buttons.some((inner) => inner.id === buttonId));
+}
+
+function findFolder(
+  state: StateMsg | null,
+  match: (folder: FolderButton) => boolean,
+): FolderButton | undefined {
+  for (const button of state?.page?.buttons ?? []) {
+    if (button.type === "folder" && match(button)) return button;
+  }
+  return undefined;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -52,7 +75,12 @@ function icon(bundleId: string, size: number): HTMLImageElement {
 function tile(button: Button, dense = false, pageApp?: string): HTMLButtonElement {
   const node = el("button", `tile tile--${button.type}`);
   node.type = "button";
-  node.dataset.buttonId = button.id;
+  // A folder opens on the phone; only other buttons are pressed on the Mac.
+  if (button.type === "folder") {
+    node.dataset.folderId = button.id;
+    node.setAttribute("aria-label", `${buttonLabel(button) || "Folder"}, folder`);
+    node.append(el("span", "folder-badge", String(button.buttons.length)));
+  } else node.dataset.buttonId = button.id;
   if (button.color) node.style.setProperty("--tile-color", button.color);
   const pictureApp =
     button.type === "app" ? button.bundleId : button.type === "url" ? pageApp : undefined;
@@ -74,33 +102,64 @@ export function contentSize(node: HTMLElement): Size {
   };
 }
 
-/** Fills the page area with the largest grid that fits; never scrolls. */
+/** The first tile of an open folder: always top-left, so it is easy to find by feel. */
+function backTile(): HTMLButtonElement {
+  const node = el("button", "tile tile--back");
+  node.type = "button";
+  node.dataset.action = "back";
+  node.setAttribute("aria-label", "Back to the page");
+  node.append(el("span", "emoji", "‹"), el("span", "label", "Back"));
+  return node;
+}
+
+/**
+ * Fills the page area with the largest grid that fits; never scrolls. `lead` tiles (the
+ * folder's Back tile) come first and are always shown.
+ */
 function fillPage(
   node: HTMLElement,
   buttons: Button[],
   columns: number | null,
   size: Size,
   pageApp?: string,
+  lead: HTMLElement[] = [],
 ): void {
-  const fit = gridFit(buttons.length, size, columns);
+  const fit = gridFit(buttons.length + lead.length, size, columns);
   const edge = Math.floor(fit.tile);
   node.style.setProperty("--tile", `${String(edge)}px`);
   node.style.gridTemplateColumns = `repeat(${String(fit.cols)}, ${String(edge)}px)`;
   node.style.gridTemplateRows = `repeat(${String(fit.rows)}, ${String(edge)}px)`;
   const dense = edge < DENSE_TILE;
   if (dense) node.classList.add("page--dense");
-  const shown = fit.overflow > 0 ? Math.max(0, fit.cols * fit.rows - 1) : buttons.length;
-  node.append(...buttons.slice(0, shown).map((button) => tile(button, dense, pageApp)));
+  const slots = fit.overflow > 0 ? Math.max(0, fit.cols * fit.rows - 1) : Infinity;
+  const shown = Math.max(0, Math.min(buttons.length, slots - lead.length));
+  node.append(...lead, ...buttons.slice(0, shown).map((button) => tile(button, dense, pageApp)));
   if (fit.overflow > 0) {
     node.append(el("div", "tile tile--overflow", `+${String(fit.overflow)} hidden — edit page`));
   }
 }
 
-function header(model: PhoneModel): HTMLElement {
+function header(model: PhoneModel, folder: FolderButton | undefined): HTMLElement {
   const node = el("header", "header");
   const frontmost = model.state?.frontmost;
-  if (frontmost) node.append(icon(frontmost.bundleId, 64));
-  node.append(el("span", "app-name", frontmost?.name ?? "—"));
+  if (folder) {
+    // The whole crumb is a back button: `‹ App › Folder`.
+    const crumb = el("button", "crumb");
+    crumb.type = "button";
+    crumb.dataset.action = "back";
+    crumb.setAttribute("aria-label", "Back to the page");
+    crumb.append(el("span", "crumb-back", "‹"));
+    if (frontmost) crumb.append(icon(frontmost.bundleId, 64));
+    crumb.append(
+      el("span", "app-name", frontmost?.name ?? "—"),
+      el("span", "crumb-sep", "›"),
+      el("span", "folder-name", [folder.emoji, buttonLabel(folder)].filter(Boolean).join(" ")),
+    );
+    node.append(crumb);
+  } else {
+    if (frontmost) node.append(icon(frontmost.bundleId, 64));
+    node.append(el("span", "app-name", frontmost?.name ?? "—"));
+  }
   node.append(el("span", model.connected ? "dot dot--on" : "dot"));
   return node;
 }
@@ -122,10 +181,11 @@ export function renderPhone(
   const strip = el("nav", "strip");
   const page = el("main", "page");
   const state = model.notice === undefined ? model.state : null;
+  const folder = state ? openFolder(model) : undefined;
   if (state?.page) strip.append(...state.global.map((button) => tile(button)));
   if (model.notice !== undefined) page.append(el("p", "notice", model.notice));
   else if (!state) page.append(el("p", "notice", "Connecting…"));
-  shell.append(header(model), strip, page);
+  shell.append(header(model, folder), strip, page);
   if (!model.connected && model.state) shell.append(el("div", "banner", "Disconnected"));
   root.replaceChildren(shell);
 
@@ -134,12 +194,17 @@ export function renderPhone(
     const size = measure(page);
     page.classList.add("page--grid");
     if (!state.page) page.classList.add("page--fallback");
-    fillPage(
-      page,
-      state.page?.buttons ?? state.global,
-      state.page?.columns ?? null,
-      size,
-      state.page?.bundleId,
-    );
+    if (folder) {
+      page.classList.add("page--folder");
+      fillPage(page, folder.buttons, folder.columns, size, state.page?.bundleId, [backTile()]);
+    } else {
+      fillPage(
+        page,
+        state.page?.buttons ?? state.global,
+        state.page?.columns ?? null,
+        size,
+        state.page?.bundleId,
+      );
+    }
   }
 }

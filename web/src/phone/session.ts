@@ -9,7 +9,7 @@ import {
   type ServerMsg,
 } from "../shared/protocol";
 import { connectSocket, type SocketLike } from "../shared/ws-client";
-import type { PhoneModel } from "./render";
+import { folderHolding, openFolder, type PhoneModel } from "./render";
 
 export const TOKEN_KEY = "shortcutphone.token";
 /** WebSocket close code for a missing, invalid or revoked token. */
@@ -19,6 +19,9 @@ const NOT_PAIRED = "Not paired. On the Mac, choose Pair Phone… in the menu and
 /** A press with no result after this long is reported as failed. */
 export const PRESS_TIMEOUT_MS = 3000;
 const VIBRATE_MS = 15;
+const FOLDER_VIBRATE_MS = 8;
+/** An open folder closes after this long without a tap. */
+export const FOLDER_IDLE_MS = 30_000;
 
 const ERROR_TEXT: Record<PressError | "offline" | "timeout", string> = {
   wrong_app: "The app changed. Try again.",
@@ -37,8 +40,11 @@ export interface PhoneDeps {
   replaceUrl: (path: string) => void;
   render: (model: PhoneModel) => void;
   createSocket?: (url: string) => SocketLike;
-  /** Flash the tile; `message` is set for errors. */
-  feedback: (buttonId: string, ok: boolean, message?: string) => void;
+  /**
+   * Flash the tile; `message` is set for errors. `folderId` is the folder holding the button,
+   * to flash instead when the folder has closed.
+   */
+  feedback: (buttonId: string, ok: boolean, message?: string, folderId?: string) => void;
   vibrate: (ms: number) => void;
   /** Current screen layout for both orientations; read after each render. */
   viewport?: () => Viewport | null;
@@ -46,6 +52,10 @@ export interface PhoneDeps {
 
 export interface Phone {
   press(buttonId: string): void;
+  /** Shows folder `folderId` of the current page in place of the page grid. */
+  openFolder(folderId: string): void;
+  /** Goes back from an open folder to the page grid. */
+  closeFolder(): void;
   /** The screen size or orientation changed: re-render and report the new viewport. */
   resized(): void;
 }
@@ -78,14 +88,39 @@ export async function startPhone(deps: PhoneDeps): Promise<Phone | null> {
   const token = deps.storage.getItem(TOKEN_KEY);
   if (!token) return show(NOT_PAIRED);
 
-  const pending = new Map<string, { buttonId: string; timer: ReturnType<typeof setTimeout> }>();
+  // Folders are opened and closed on the phone alone.
+  let folderTimer: ReturnType<typeof setTimeout> | undefined;
+  const closeFolder = (): void => {
+    clearTimeout(folderTimer);
+    if (model.folder === undefined) return;
+    delete model.folder;
+    deps.render(model);
+  };
+  /** Restarts the idle countdown of an open folder. */
+  const touchFolder = (): void => {
+    clearTimeout(folderTimer);
+    if (model.folder !== undefined) folderTimer = setTimeout(closeFolder, FOLDER_IDLE_MS);
+  };
+
+  const pending = new Map<
+    string,
+    { buttonId: string; folderId?: string; timer: ReturnType<typeof setTimeout> }
+  >();
+  const feedback = (
+    entry: { buttonId: string; folderId?: string },
+    ok: boolean,
+    message?: string,
+  ): void => {
+    if (entry.folderId === undefined) deps.feedback(entry.buttonId, ok, message);
+    else deps.feedback(entry.buttonId, ok, message, entry.folderId);
+  };
   const settle = (pressId: string, error?: keyof typeof ERROR_TEXT): void => {
     const entry = pending.get(pressId);
     if (!entry) return;
     pending.delete(pressId);
     clearTimeout(entry.timer);
-    if (error) deps.feedback(entry.buttonId, false, ERROR_TEXT[error]);
-    else deps.feedback(entry.buttonId, true);
+    if (error) feedback(entry, false, ERROR_TEXT[error]);
+    else feedback(entry, true);
   };
 
   let sendRaw: ((raw: string) => void) | null = null;
@@ -116,7 +151,14 @@ export async function startPhone(deps: PhoneDeps): Promise<Phone | null> {
     },
     onMessage: (msg: ServerMsg) => {
       if (msg.type === "state") {
+        // A different app in front always starts on its page grid, even if it is the same
+        // app again; so does a config change that removed the open folder.
+        const appChanged = msg.frontmost?.bundleId !== model.state?.frontmost?.bundleId;
         model.state = msg;
+        if (model.folder !== undefined && (appChanged || !openFolder(model))) {
+          clearTimeout(folderTimer);
+          delete model.folder;
+        }
         deps.render(model);
       } else {
         settle(msg.pressId, msg.ok ? undefined : msg.error);
@@ -138,16 +180,36 @@ export async function startPhone(deps: PhoneDeps): Promise<Phone | null> {
   return {
     press(buttonId) {
       deps.vibrate(VIBRATE_MS);
+      const folder = folderHolding(model.state, buttonId);
+      const target = folder ? { buttonId, folderId: folder.id } : { buttonId };
       const pressId = newPressId();
-      if (!handle.send(pressMsg(pressId, buttonId))) {
-        deps.feedback(buttonId, false, ERROR_TEXT.offline);
+      const sent = handle.send(pressMsg(pressId, buttonId));
+      // A "back" folder returns to the page right away, so the next tap is on the page.
+      if (folder && folder.id === model.folder) {
+        if (folder.afterPress === "back") closeFolder();
+        else touchFolder();
+      }
+      if (!sent) {
+        feedback(target, false, ERROR_TEXT.offline);
         return;
       }
       const timer = setTimeout(() => {
         settle(pressId, "timeout");
       }, PRESS_TIMEOUT_MS);
-      pending.set(pressId, { buttonId, timer });
+      pending.set(pressId, { ...target, timer });
     },
+    openFolder(folderId) {
+      if (model.folder === folderId) return;
+      model.folder = folderId;
+      if (!openFolder(model)) {
+        delete model.folder;
+        return;
+      }
+      deps.vibrate(FOLDER_VIBRATE_MS);
+      deps.render(model);
+      touchFolder();
+    },
+    closeFolder,
     resized() {
       deps.render(model);
       reportViewport();

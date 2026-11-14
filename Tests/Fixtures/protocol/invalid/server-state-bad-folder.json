@@ -1,0 +1,12 @@
+{
+  "type": "state",
+  "frontmost": null,
+  "global": [],
+  "page": {
+    "bundleId": "com.blizzard.worldofwarcraft",
+    "columns": null,
+    "buttons": [
+      { "id": "btn_2", "type": "folder", "label": "Social", "afterPress": "sometimes", "columns": null, "buttons": [] }
+    ]
+  }
+}
