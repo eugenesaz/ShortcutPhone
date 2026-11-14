@@ -3,8 +3,15 @@ import Hummingbird
 import ShortcutPhoneCore
 
 extension AgentServer {
-    static let iconSizes = 16...512
+    /// The only sizes rendered. A request is rounded up to the next one (the largest above 512),
+    /// so the public route can't fill the icon cache with every size from 16 to 512.
+    static let iconSizes = [64, 128, 256, 512]
     static let defaultIconSize = 128
+
+    static func iconSize(for requested: Int?) -> Int {
+        let wanted = requested ?? defaultIconSize
+        return iconSizes.first { $0 >= wanted } ?? iconSizes[iconSizes.count - 1]
+    }
 
     /// `GET /icons/<bundleId>.png?size=128`. Public: `<img>` can't send a token, and app icons
     /// aren't secret.
@@ -14,10 +21,7 @@ extension AgentServer {
             guard file.hasSuffix(".png") else { throw HTTPError(.notFound) }
             let bundleId = String(file.dropLast(4))
             guard ConfigValidator.isBundleID(bundleId) else { throw HTTPError(.notFound) }
-            let requested = request.uri.queryParameters.get("size", as: Int.self)
-            let size = min(
-                max(requested ?? Self.defaultIconSize, Self.iconSizes.lowerBound),
-                Self.iconSizes.upperBound)
+            let size = Self.iconSize(for: request.uri.queryParameters.get("size", as: Int.self))
             guard let png = await icons.pngIcon(bundleId: bundleId, size: size) else {
                 throw HTTPError(.notFound)
             }

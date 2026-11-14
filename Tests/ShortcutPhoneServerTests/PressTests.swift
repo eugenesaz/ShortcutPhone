@@ -105,6 +105,20 @@ extension LiveServerTests {
             }
         }
 
+        /// Sizes are rounded up to a few fixed ones, so the public route can't fill the icon
+        /// cache with every size from 16 to 512.
+        @Test(arguments: [("16", 64), ("64", 64), ("65", 128), ("200", 256), ("300", 512)])
+        func roundsSizesUpToAFixedSet(_ requested: String, _ served: Int) async throws {
+            let agent = try TestAgent()
+            try await agent.server.application().test(.router) { client in
+                try await client.execute(
+                    uri: "/icons/com.apple.Safari.png?size=\(requested)", method: .get
+                ) {
+                    #expect(String(buffer: $0.body) == "png:\(served)")
+                }
+            }
+        }
+
         @Test(arguments: [
             "/icons/com.unknown.App.png", "/icons/not-a-bundle.png", "/icons/com.apple.Safari",
         ])

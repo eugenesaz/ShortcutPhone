@@ -193,3 +193,78 @@ actor FakeOS: AppLauncher, TextTyper, AccessibilityChecker, FrontmostAppProvider
         #expect(ActionError.unknownButton(id: "x").pressError == .unknownButton)
     }
 }
+
+/// A typer whose paste takes a while, to check that typing actions never overlap.
+actor SlowTyper: TextTyper {
+    private(set) var active = 0
+    private(set) var maxActive = 0
+    private(set) var typed: [String] = []
+    /// Runs while the first paste is in progress (e.g. the user switches apps).
+    var duringFirstPaste: (@Sendable () async -> Void)?
+
+    func set(duringFirstPaste: @escaping @Sendable () async -> Void) {
+        self.duringFirstPaste = duringFirstPaste
+    }
+
+    func pasteAndReturn(_ text: String) async throws(ActionError) {
+        active += 1
+        maxActive = max(maxActive, active)
+        if typed.isEmpty, let hook = duringFirstPaste { await hook() }
+        try? await Task.sleep(for: .milliseconds(50))
+        typed.append(text)
+        active -= 1
+    }
+
+    func send(_ keys: String) async throws(ActionError) {
+        try await pasteAndReturn(keys)
+    }
+}
+
+@Suite struct PressSerializationTests {
+    let config: Config
+    let slack = AppRef(bundleId: "com.tinyspeck.slackmacgap", name: "Slack")
+    let safari = AppRef(bundleId: "com.apple.Safari", name: "Safari")
+
+    init() throws {
+        config = try Config.decode(Fixtures.data("config/spec-example.json"))
+    }
+
+    /// Two phones tapping text buttons at once must not interleave: each paste saves and
+    /// restores the clipboard, and overlapping pastes would lose the user's clipboard.
+    @Test func typingActionsRunOneAtATime() async throws {
+        let os = FakeOS(frontmost: slack)
+        let typer = SlowTyper()
+        let dispatcher = PressDispatcher(
+            launcher: os, typer: typer, accessibility: os, frontmost: os)
+        let config = self.config
+        async let first: Void = dispatcher.handle(buttonId: "btn_3", config: config)
+        async let second: Void = dispatcher.handle(buttonId: "btn_4", config: config)
+        async let third: Void = dispatcher.handle(buttonId: "btn_3", config: config)
+        _ = try await (first, second, third)
+        #expect(await typer.maxActive == 1)
+        #expect(await typer.typed.count == 3)
+    }
+
+    /// A queued tap checks focus when its turn comes, not when it arrived.
+    @Test func queuedTapChecksFocusWhenItRuns() async throws {
+        let os = FakeOS(frontmost: slack)
+        let typer = SlowTyper()
+        let safari = self.safari
+        await typer.set(duringFirstPaste: { await os.set(frontmost: safari) })
+        let dispatcher = PressDispatcher(
+            launcher: os, typer: typer, accessibility: os, frontmost: os)
+        let config = self.config
+        async let first: Void = dispatcher.handle(buttonId: "btn_3", config: config)
+        try await Task.sleep(for: .milliseconds(10))  // let the first paste start
+        let second: ActionError?
+        do {
+            try await dispatcher.handle(buttonId: "btn_4", config: config)
+            second = nil
+        } catch {
+            second = error
+        }
+        try await first
+        #expect(second == .wrongApp(expected: slack.bundleId, actual: safari.bundleId))
+        #expect(await typer.typed == ["LGTM, merging."])
+    }
+}

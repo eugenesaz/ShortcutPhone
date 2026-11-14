@@ -45,7 +45,7 @@ The phone opens it in Chrome, pinned to the home screen. Tapping a button runs a
 | Web page | `url` | Open `url` (`http`/`https` only) in the **page's app** with `NSWorkspace.open(_:withApplicationAt:configuration:)`, which opens a new tab and brings the browser to the front. So `url` buttons on the Microsoft Edge page (`com.microsoft.edgemac`) open in Edge, and on the Chrome page (`com.google.Chrome`) in Chrome. Page buttons only. Nothing is typed, and no Accessibility permission is needed. |
 | Key combo | `keys` | Post a CGEvent key-down/up with the modifiers, e.g. `"cmd+shift+p"`. A single key with no modifiers is also valid (`"1"`, `"f5"`, `"space"`, `"esc"`), as needed for game keybinds. Supported: letters, digits, F1–F20, arrows, space, return, tab, esc, delete, and punctuation, plus the `cmd`/`shift`/`alt`/`ctrl` modifiers. |
 
-**Focus guard:** `text` and `keys` buttons belong to an app page. They run only if that page's app is **still frontmost** when the press arrives. If it isn't, the agent rejects the press with `wrong_app` and the phone shows a brief error. This keeps text from landing in the wrong app because of a race. `app` and `url` buttons have no guard, even on a page.
+**Focus guard:** `text` and `keys` buttons belong to an app page. They run only if that page's app is **still frontmost** when the press arrives. If it isn't, the agent rejects the press with `wrong_app` and the phone shows a brief error. This keeps text from landing in the wrong app because of a race. Text and key presses run **one at a time**, in arrival order, whichever phone sent them (each paste saves and restores the clipboard, so overlapping pastes would lose it). The focus guard is checked when a queued press's turn comes. `app` and `url` buttons have no guard, even on a page.
 
 ### Phone UI (`/`)
 
@@ -140,7 +140,7 @@ The phone opens it in Chrome, pinned to the home screen. Tapping a button runs a
 **HTTP**
 - `GET /`: phone UI (static)
 - `GET /editor`: editor UI (static; loopback only)
-- `GET /icons/<bundleId>.png?size=128`: app icon, rendered from `NSWorkspace.icon(forFile:)` and cached
+- `GET /icons/<bundleId>.png?size=128`: app icon, rendered from `NSWorkspace.icon(forFile:)` and cached. Sizes are rounded up to 64, 128, 256 or 512 (larger requests get 512), so this public route can't fill the cache with every size
 - `POST /api/pair` `{code}` → `{token, deviceId}`
 - `GET /api/config`, `PUT /api/config`: loopback + editor key
 - `GET /api/config/status` → `{errors?: [{path, message}]}`: problems with `config.json` on disk, if any (the last good config stays active). Loopback + editor key.

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1] - 2026-11-14
+
+- Security: icon requests are rounded up to a few fixed sizes. Before, anyone on the network
+  could make the app render and keep every size from 16 to 512 of every installed app's icon,
+  using up memory.
+- Text and key taps from several phones at once now run one after another. Before, two
+  simultaneous text taps could leave the wrong text on your clipboard.
+
 ## [0.1.0] - 2026-11-14
 
 First public release.

@@ -5,6 +5,11 @@ public actor PressDispatcher {
     private let accessibility: any AccessibilityChecker
     private let frontmost: any FrontmostAppProvider
     private let timing: any TimingLog
+    /// The last queued typing action. Text and key presses run one at a time, in arrival order,
+    /// whichever phone sent them: a paste saves and restores the clipboard, and overlapping
+    /// pastes would lose the user's clipboard. (An actor alone doesn't prevent this, because
+    /// it lets another press in while one awaits the typer.)
+    private var typingQueue: Task<Void, Never>?
 
     public init(
         launcher: any AppLauncher, typer: any TextTyper, accessibility: any AccessibilityChecker,
@@ -21,31 +26,35 @@ public actor PressDispatcher {
     public func handle(
         buttonId: String, config: Config, receivedAt: ContinuousClock.Instant? = nil
     ) async throws(ActionError) {
-        func started() {
+        @Sendable func started() {
             if let receivedAt { timing.record(.pressToAction, .now - receivedAt) }
         }
         guard let (button, owner) = config.lookup(buttonId) else {
             throw .unknownButton(id: buttonId)
         }
-        // Focus guard: text and keys go to the frontmost app, so a page's text/keys buttons run
-        // only while that app is still frontmost, checked now rather than trusting what the
-        // phone last saw. App and web-page buttons don't type anything and need no guard.
-        if case .page(let bundleId) = owner, button.action.typesIntoFrontmostApp {
-            let actual = await frontmost.current()?.bundleId
-            guard actual == bundleId else { throw .wrongApp(expected: bundleId, actual: actual) }
-        }
         switch button.action {
         case .app(let bundleId):
             started()
             try await launcher.launchOrActivate(bundleId: bundleId)
-        case .text(let text):
-            guard await accessibility.isTrusted() else { throw .noAccessibility }
-            started()
-            try await typer.pasteAndReturn(text)
-        case .keys(let keys):
-            guard await accessibility.isTrusted() else { throw .noAccessibility }
-            started()
-            try await typer.send(keys)
+        case .text, .keys:
+            try await inTypingQueue { () async throws(ActionError) in
+                // Focus guard: text and keys go to the frontmost app, so a page's text/keys
+                // buttons run only while that app is frontmost. Checked when this press's turn
+                // comes, not when it arrived or from what the phone last saw.
+                if case .page(let bundleId) = owner {
+                    let actual = await self.frontmost.current()?.bundleId
+                    guard actual == bundleId else {
+                        throw .wrongApp(expected: bundleId, actual: actual)
+                    }
+                }
+                guard await self.accessibility.isTrusted() else { throw .noAccessibility }
+                started()
+                if case .text(let text) = button.action {
+                    try await self.typer.pasteAndReturn(text)
+                } else if case .keys(let keys) = button.action {
+                    try await self.typer.send(keys)
+                }
+            }
         case .url(let url):
             // Validation keeps url buttons out of the global strip.
             guard case .page(let browser) = owner else { throw .unknownButton(id: buttonId) }
@@ -55,12 +64,22 @@ public actor PressDispatcher {
     }
 }
 
-extension ButtonAction {
-    /// Whether the action sends keystrokes to whatever app is frontmost.
-    var typesIntoFrontmostApp: Bool {
-        switch self {
-        case .text, .keys: true
-        case .app, .url: false
+extension PressDispatcher {
+    /// Runs `action` after every typing action queued before it has finished.
+    private func inTypingQueue(
+        _ action: @escaping @Sendable () async throws(ActionError) -> Void
+    ) async throws(ActionError) {
+        let previous = typingQueue
+        let run = Task { () async -> Result<Void, ActionError> in
+            await previous?.value
+            do throws(ActionError) {
+                try await action()
+                return .success(())
+            } catch {
+                return .failure(error)
+            }
         }
+        typingQueue = Task { _ = await run.value }
+        try await run.value.get()
     }
 }
