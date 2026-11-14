@@ -5,6 +5,7 @@ import SwiftUI
 struct ShortcutPhoneApp: App {
     private let agent = AgentModel()
     private let pairingWindow = PairingWindow()
+    private let updater = Updater()
 
     var body: some Scene {
         MenuBarExtra("ShortcutPhone", systemImage: "iphone") {
@@ -17,6 +18,11 @@ struct ShortcutPhoneApp: App {
                 .disabled(agent.pairing == nil)
             Divider()
             LoginItemMenu(agent: agent)
+            Divider()
+            Text("Version \(Updater.version)")
+            if let updater {
+                Button("Check for Updates…") { updater.checkForUpdates() }
+            }
             Divider()
             Button("Quit") { NSApplication.shared.terminate(nil) }
                 .keyboardShortcut("q")

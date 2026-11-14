@@ -26,5 +26,13 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>SUFeedURL</key>
+    <string>https://github.com/eugenesaz/ShortcutPhone/releases/latest/download/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>V0ToujExZPjiCiyQFgBAj915m6aV0sYzYk/8v6OY3vI=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
 </dict>
 </plist>

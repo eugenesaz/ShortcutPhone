@@ -35,6 +35,7 @@ the PR or release notes and fill in the results.
 | R1 | Release zip opens | Download the release zip on a Mac that never ran ShortcutPhone. Unzip, move to Applications, open: blocked. **Privacy & Security › Open Anyway**: it starts, and the menu-bar icon appears | |
 | R2 | Starter config | On that first run, the phone shows the starter strip, and the Notes page while Notes is in front | |
 | R3 | Accessibility survives an update | Grant Accessibility on version N, then replace the app with N+1 (same release identity): the menu still says "granted" | |
+| R5 | Automatic update | With version N installed in `~/Applications`, publish N+1. **Check for Updates…** offers it with its notes; **Install** relaunches into N+1, and the menu still says "Accessibility: granted" | |
 | R4 | Local signature | `codesign -dvvv build/ShortcutPhone.app 2>&1 \| grep Authority` shows `ShortcutPhone Local`. Rebuild twice: the menu still says "granted" | |
 
 ## Pairing and auth

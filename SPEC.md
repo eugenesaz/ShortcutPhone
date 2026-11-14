@@ -392,6 +392,15 @@ _Recorded 2026-11-13._
    their tunnel, so the phone can't reach the Mac over Wi-Fi while they're on. `adb` is a runtime tool found on disk (Homebrew or Android Studio), not a build
    dependency.
 
+6. **Automatic updates with Sparkle 2** (2026-11-14). The app checks
+   `releases/latest/download/appcast.xml` daily. Each release's zip is signed with an EdDSA
+   key (`SPARKLE_PRIVATE_KEY` secret; the public key is `SUPublicEDKey` in Info.plist) by
+   `scripts/sparkle-tool.swift`, which uses CryptoKit rather than Sparkle's prebuilt tools.
+   Sparkle's XPC services are left out (they're only for sandboxed apps). The app is signed with
+   `com.apple.security.cs.disable-library-validation`, because a self-signed app has no Team ID
+   and the hardened runtime would otherwise refuse the embedded framework. Local builds (no
+   `VERSION`) turn off automatic checks.
+
 ## Deferred / keep in mind
 
 - **World of Warcraft.**

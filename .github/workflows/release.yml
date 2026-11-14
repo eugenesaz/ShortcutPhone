@@ -50,12 +50,25 @@ jobs:
           CODESIGN_IDENTITY: ShortcutPhone Release
         run: ./scripts/release.sh "${GITHUB_REF_NAME#v}"
 
+      - name: Write the update feed (appcast.xml)
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '$0 ~ "^## \\[?"v {f=1; next} /^## / {f=0} f' CHANGELOG.md > build/notes.md
+          public_key="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' Resources/Info.plist)"
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/ShortcutPhone-$version.zip"
+          ./scripts/sparkle.sh appcast "$version" "build/ShortcutPhone-$version.zip" "$url" \
+            build/notes.md "$public_key" > build/appcast.xml
+          xmllint --noout build/appcast.xml
+
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="${GITHUB_REF_NAME#v}"
-          notes="$(awk -v v="$version" '$0 ~ "^## \\[?"v {f=1; next} /^## / {f=0} f' CHANGELOG.md)"
+          notes="$(cat build/notes.md)"
           gh release create "$GITHUB_REF_NAME" \
             "build/ShortcutPhone-$version.zip" "build/ShortcutPhone-$version.zip.sha256" \
+            build/appcast.xml \
             --title "ShortcutPhone $version" --notes "${notes:-See CHANGELOG.md}"

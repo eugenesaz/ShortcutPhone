@@ -33,12 +33,17 @@ untested.
 
 1. Download `ShortcutPhone-<version>.zip` from
    [Releases](https://github.com/eugenesaz/ShortcutPhone/releases) and unzip it.
-2. Move **ShortcutPhone.app** to **Applications**, then open it.
+2. Move **ShortcutPhone.app** to **Applications**, then open it. If your Mac account isn't an
+   administrator, use the **Applications** folder in your home folder (`~/Applications`;
+   create it if needed), so updates can install without an admin password.
 3. macOS blocks it the first time, because the app isn't notarized by Apple (that needs a paid
    developer account). Open **System Settings › Privacy & Security**, scroll down, click
    **Open Anyway** next to ShortcutPhone, and confirm.
 
 A phone icon appears in the menu bar. ShortcutPhone has no Dock icon or window of its own.
+
+**Updates** install themselves: the app checks once a day, shows what's new, and installs with
+one click. The menu also has **Check for Updates…**.
 
 <details>
 <summary>Prefer the terminal?</summary>

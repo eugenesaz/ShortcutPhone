@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0] - 2026-11-14
+
+- Automatic updates: the app checks for a new version once a day and installs it with one
+  click. **Check for Updates…** is in the menu, next to the version number. Install this
+  version by hand once; later versions arrive by themselves.
+
 ## [0.1.1] - 2026-11-14
 
 - Security: icon requests are rounded up to a few fixed sizes. Before, anyone on the network

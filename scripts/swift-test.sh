@@ -5,5 +5,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 # shellcheck source=swift-env.sh
 source scripts/swift-env.sh
+scripts/fetch-sparkle.sh  # the app target links Sparkle; swift test builds every target
 # shellcheck disable=SC2086 # intentional word splitting of flags
 exec swift test $SWIFT_TEST_FLAGS "$@"

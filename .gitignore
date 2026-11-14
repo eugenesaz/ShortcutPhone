@@ -4,6 +4,7 @@ build/
 .swiftpm/
 web/node_modules/
 web/dist/
+Vendor/
 *.xcodeproj
 
 # Local working notes and agent setup (not published)

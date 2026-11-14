@@ -28,8 +28,18 @@ let package = Package(
         ),
         .executableTarget(
             name: "ShortcutPhoneApp",
-            dependencies: ["ShortcutPhoneCore", "ShortcutPhoneMac", "ShortcutPhoneServer"]
+            dependencies: [
+                "ShortcutPhoneCore", "ShortcutPhoneMac", "ShortcutPhoneServer",
+                "Sparkle",
+            ],
+            linkerSettings: [
+                // Finds Sparkle.framework in Contents/Frameworks of the app bundle.
+                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])
+            ]
         ),
+        // Automatic updates: Sparkle's official prebuilt framework, fetched and checksum-verified
+        // by scripts/fetch-sparkle.sh. scripts/bundle.sh embeds it in the app.
+        .binaryTarget(name: "Sparkle", path: "Vendor/Sparkle.xcframework"),
         .testTarget(
             name: "ShortcutPhoneCoreTests",
             dependencies: ["ShortcutPhoneCore"]
