@@ -15,12 +15,12 @@ extension Config {
                 return named
             }
         }
-        let page = frontmost.flatMap { page(for: $0.bundleId) }.map { page in
-            var page = page
-            page.buttons = named(page.buttons)
-            return page
+        var shown: Page?
+        if let bundleId = frontmost?.bundleId, var found = page(for: bundleId) {
+            found.buttons = named(found.buttons)
+            shown = found
         }
-        return StateMessage(frontmost: frontmost, global: named(stripOrder), page: page)
+        return StateMessage(frontmost: frontmost, global: named(stripOrder), page: shown)
     }
 
     /// Global buttons as the strip shows them: pinned first, otherwise in config order.
