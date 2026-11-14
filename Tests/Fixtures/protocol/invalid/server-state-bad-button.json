@@ -1,0 +1,1 @@
+{ "type": "state", "frontmost": null, "global": [{ "id": "x", "type": "shell", "command": "ls" }], "page": null }

@@ -1,0 +1,263 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --surface: #1c1f26;
+  --surface-pressed: #2a2e38;
+  --text: #f2f3f5;
+  --muted: #8b90a0;
+  --ok: #2fbf71;
+  --error: #e5484d;
+  --gap: 8px;
+  --strip: 72px;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* the phone UI never scrolls */
+  background: var(--bg);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.phone {
+  display: grid;
+  height: 100%;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  grid-template-rows: auto var(--strip) 1fr;
+  grid-template-areas: "header" "strip" "page";
+  gap: var(--gap);
+}
+
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.app-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--error);
+}
+
+.dot--on {
+  background: var(--ok);
+}
+
+.strip {
+  grid-area: strip;
+  display: flex;
+  gap: var(--gap);
+  padding: 0 var(--gap);
+  /* The one part of the phone UI that scrolls: any number of global apps fit. */
+  overflow: auto hidden;
+  overscroll-behavior: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.strip .tile {
+  flex: none;
+  height: 100%;
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 0;
+  scroll-snap-align: start;
+}
+
+.strip .label {
+  font-size: 11px;
+}
+
+/* The page area's size comes from the outer grid; render.ts sets the tile grid inside it
+   (gridFit), so it never needs to scroll. */
+.page {
+  grid-area: page;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--gap);
+  padding: 0 var(--gap) var(--gap);
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+.page--grid {
+  justify-content: center;
+  align-content: center;
+}
+
+.page .tile {
+  min-width: 0;
+  min-height: 0;
+}
+
+.page .label {
+  font-size: clamp(11px, calc(var(--tile, 88px) * 0.15), 18px);
+}
+
+.page .emoji {
+  font-size: clamp(20px, calc(var(--tile, 88px) * 0.4), 64px);
+}
+
+.page .icon {
+  max-width: calc(var(--tile, 88px) * 0.55);
+}
+
+.tile--overflow {
+  background: var(--error);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.notice {
+  grid-column: 1 / -1;
+  align-self: center;
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 56px;
+  min-height: 56px;
+  padding: 4px;
+  border: none;
+  border-radius: 12px;
+  background: var(--tile-color, var(--surface));
+  color: var(--text);
+  font: inherit;
+  overflow: hidden;
+}
+
+.tile:active {
+  filter: brightness(1.3);
+}
+
+.tile--ok {
+  box-shadow: inset 0 0 0 3px var(--ok);
+}
+
+.tile--error {
+  box-shadow: inset 0 0 0 3px var(--error);
+}
+
+.icon {
+  width: 60%;
+  max-width: 64px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.header .icon {
+  width: 22px;
+  margin-right: 8px;
+}
+
+.header .app-name {
+  flex: 1;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 48px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--error);
+  color: var(--text);
+  font-weight: 600;
+  text-align: center;
+}
+
+.emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.label {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.banner {
+  position: fixed;
+  inset: auto 0 0 0;
+  padding: 8px;
+  text-align: center;
+  background: var(--error);
+  font-weight: 600;
+}
+
+.phone--offline .page,
+.phone--offline .strip {
+  opacity: 0.4;
+}
+
+@media (orientation: landscape) {
+  .phone {
+    grid-template-rows: auto 1fr;
+    grid-template-columns: var(--strip) 1fr;
+    grid-template-areas: "strip header" "strip page";
+  }
+
+  .strip {
+    flex-direction: column;
+    padding: var(--gap) 0 var(--gap) var(--gap);
+    overflow: hidden auto;
+    scroll-snap-type: y proximity;
+    touch-action: pan-y;
+  }
+
+  .strip .tile {
+    width: 100%;
+    height: auto;
+  }
+}

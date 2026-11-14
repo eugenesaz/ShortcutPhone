@@ -1,0 +1,13 @@
+{
+  "valid": [
+    "cmd+shift+p", "1", "0", "f5", "F20", "space", "return", "enter", "tab", "esc", "escape",
+    "delete", "backspace", "up", "down", "left", "right", "K", " Cmd + Shift + P ",
+    "command+a", "⌘+a", "alt+a", "option+a", "opt+a", "ctrl+a", "control+a", "shift+a", "⇧+a",
+    "⌥+a", "⌃+a", "cmd+-", "cmd+=", "cmd+[", "cmd+]", "cmd+\\", "cmd+;", "cmd+'", "cmd+,",
+    "cmd+.", "cmd+/", "cmd+`", "cmd+cmd+a"
+  ],
+  "invalid": [
+    "", " ", "cmd", "cmd+shift", "cmd+a+b", "f0", "f21", "hyper+a", "cmd++", "a+cmd", "ab",
+    "cmd+", "+a", "é", "ф", "cmd+é", "f05x"
+  ]
+}

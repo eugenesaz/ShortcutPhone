@@ -1,0 +1,61 @@
+name: Release
+
+# Push a tag like v0.2.0 to build, sign and publish build/ShortcutPhone-0.2.0.zip.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm --prefix web ci
+      - run: ./scripts/check.sh
+
+      - name: Import the release signing identity
+        env:
+          P12_BASE64: ${{ secrets.RELEASE_IDENTITY_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.RELEASE_IDENTITY_PASSWORD }}
+        run: |
+          if [ -z "$P12_BASE64" ]; then
+            echo "Missing RELEASE_IDENTITY_P12_BASE64 secret (see docs/releasing.md)" >&2
+            exit 1
+          fi
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          keychain_pass="$(openssl rand -hex 16)"
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/id.p12"
+          security create-keychain -p "$keychain_pass" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_pass" "$keychain"
+          security import "$RUNNER_TEMP/id.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_pass" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          # Self-signed: trust it for code signing, or codesign rejects the identity.
+          security find-certificate -c "ShortcutPhone Release" -p "$keychain" > "$RUNNER_TEMP/cert.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
+            -k /Library/Keychains/System.keychain "$RUNNER_TEMP/cert.pem"
+          rm "$RUNNER_TEMP/id.p12"
+
+      - name: Build the release zip
+        env:
+          CODESIGN_IDENTITY: ShortcutPhone Release
+        run: ./scripts/release.sh "${GITHUB_REF_NAME#v}"
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes="$(awk -v v="$version" '$0 ~ "^## \\[?"v {f=1; next} /^## / {f=0} f' CHANGELOG.md)"
+          gh release create "$GITHUB_REF_NAME" \
+            "build/ShortcutPhone-$version.zip" "build/ShortcutPhone-$version.zip.sha256" \
+            --title "ShortcutPhone $version" --notes "${notes:-See CHANGELOG.md}"

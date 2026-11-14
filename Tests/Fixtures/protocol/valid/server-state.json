@@ -1,0 +1,17 @@
+{
+  "type": "state",
+  "frontmost": { "bundleId": "com.tinyspeck.slackmacgap", "name": "Slack" },
+  "global": [
+    { "id": "btn_1", "type": "app", "bundleId": "com.apple.Safari", "label": "Safari" },
+    { "id": "btn_2", "type": "app", "bundleId": "com.tinyspeck.slackmacgap", "color": "#4A154B" }
+  ],
+  "page": {
+    "bundleId": "com.tinyspeck.slackmacgap",
+    "columns": 3,
+    "buttons": [
+      { "id": "btn_3", "type": "text", "label": "LGTM", "emoji": "👍", "text": "LGTM, merging." },
+      { "id": "btn_4", "type": "keys", "label": "Jump to", "keys": "cmd+k" },
+      { "id": "btn_5", "type": "url", "url": "https://status.slack.com/" }
+    ]
+  }
+}

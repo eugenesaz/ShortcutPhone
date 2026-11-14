@@ -1,0 +1,654 @@
+{
+  "pixel5": {
+    "portrait": {
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "strip": {
+        "w": 393,
+        "h": 72
+      }
+    },
+    "landscape": {
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "strip": {
+        "w": 72,
+        "h": 393
+      }
+    }
+  },
+  "capacity": [
+    {
+      "name": "no device reported: Pixel 5 profile",
+      "viewports": [],
+      "columns": null,
+      "expect": {
+        "page": 55,
+        "strip": 6
+      }
+    },
+    {
+      "name": "Pixel 5 reported",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 393,
+              "h": 700
+            },
+            "strip": {
+              "w": 393,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 700,
+              "h": 345
+            },
+            "strip": {
+              "w": 72,
+              "h": 393
+            }
+          }
+        }
+      ],
+      "columns": null,
+      "expect": {
+        "page": 55,
+        "strip": 6
+      }
+    },
+    {
+      "name": "Pixel 5, columns 2",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 393,
+              "h": 700
+            },
+            "strip": {
+              "w": 393,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 700,
+              "h": 345
+            },
+            "strip": {
+              "w": 72,
+              "h": 393
+            }
+          }
+        }
+      ],
+      "columns": 2,
+      "expect": {
+        "page": 10,
+        "strip": 6
+      }
+    },
+    {
+      "name": "Pixel 5, columns 6",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 393,
+              "h": 700
+            },
+            "strip": {
+              "w": 393,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 700,
+              "h": 345
+            },
+            "strip": {
+              "w": 72,
+              "h": 393
+            }
+          }
+        }
+      ],
+      "columns": 6,
+      "expect": {
+        "page": 30,
+        "strip": 6
+      }
+    },
+    {
+      "name": "Pixel 5, columns 7 too narrow in portrait",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 393,
+              "h": 700
+            },
+            "strip": {
+              "w": 393,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 700,
+              "h": 345
+            },
+            "strip": {
+              "w": 72,
+              "h": 393
+            }
+          }
+        }
+      ],
+      "columns": 7,
+      "expect": {
+        "page": null,
+        "strip": 6
+      }
+    },
+    {
+      "name": "Pixel 5, columns 1",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 393,
+              "h": 700
+            },
+            "strip": {
+              "w": 393,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 700,
+              "h": 345
+            },
+            "strip": {
+              "w": 72,
+              "h": 393
+            }
+          }
+        }
+      ],
+      "columns": 1,
+      "expect": {
+        "page": 5,
+        "strip": 6
+      }
+    },
+    {
+      "name": "smallest device wins",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 800,
+              "h": 1100
+            },
+            "strip": {
+              "w": 800,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 1200,
+              "h": 700
+            },
+            "strip": {
+              "w": 72,
+              "h": 800
+            }
+          }
+        },
+        {
+          "portrait": {
+            "page": {
+              "w": 393,
+              "h": 700
+            },
+            "strip": {
+              "w": 393,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 700,
+              "h": 345
+            },
+            "strip": {
+              "w": 72,
+              "h": 393
+            }
+          }
+        },
+        {
+          "portrait": {
+            "page": {
+              "w": 360,
+              "h": 560
+            },
+            "strip": {
+              "w": 360,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 560,
+              "h": 300
+            },
+            "strip": {
+              "w": 72,
+              "h": 360
+            }
+          }
+        }
+      ],
+      "columns": null,
+      "expect": {
+        "page": 32,
+        "strip": 5
+      }
+    },
+    {
+      "name": "tablet alone",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 800,
+              "h": 1100
+            },
+            "strip": {
+              "w": 800,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 1200,
+              "h": 700
+            },
+            "strip": {
+              "w": 72,
+              "h": 800
+            }
+          }
+        }
+      ],
+      "columns": null,
+      "expect": {
+        "page": 198,
+        "strip": 12
+      }
+    },
+    {
+      "name": "tablet, columns 8",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 800,
+              "h": 1100
+            },
+            "strip": {
+              "w": 800,
+              "h": 72
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 1200,
+              "h": 700
+            },
+            "strip": {
+              "w": 72,
+              "h": 800
+            }
+          }
+        }
+      ],
+      "columns": 8,
+      "expect": {
+        "page": 88,
+        "strip": 12
+      }
+    },
+    {
+      "name": "strip too thin holds nothing",
+      "viewports": [
+        {
+          "portrait": {
+            "page": {
+              "w": 393,
+              "h": 700
+            },
+            "strip": {
+              "w": 393,
+              "h": 40
+            }
+          },
+          "landscape": {
+            "page": {
+              "w": 700,
+              "h": 345
+            },
+            "strip": {
+              "w": 72,
+              "h": 393
+            }
+          }
+        }
+      ],
+      "columns": null,
+      "expect": {
+        "page": 55,
+        "strip": 0
+      }
+    }
+  ],
+  "gridFit": [
+    {
+      "name": "1 buttons, Pixel 5 portrait",
+      "count": 1,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": null,
+      "expect": {
+        "cols": 1,
+        "rows": 1,
+        "tile": 393.0,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "1 buttons, Pixel 5 landscape",
+      "count": 1,
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "columns": null,
+      "expect": {
+        "cols": 1,
+        "rows": 1,
+        "tile": 345.0,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "4 buttons, Pixel 5 portrait",
+      "count": 4,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": null,
+      "expect": {
+        "cols": 2,
+        "rows": 2,
+        "tile": 192.5,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "4 buttons, Pixel 5 landscape",
+      "count": 4,
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "columns": null,
+      "expect": {
+        "cols": 4,
+        "rows": 1,
+        "tile": 169.0,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "12 buttons, Pixel 5 portrait",
+      "count": 12,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": null,
+      "expect": {
+        "cols": 3,
+        "rows": 4,
+        "tile": 125.667,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "12 buttons, Pixel 5 landscape",
+      "count": 12,
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "columns": null,
+      "expect": {
+        "cols": 6,
+        "rows": 2,
+        "tile": 110.0,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "24 buttons, Pixel 5 portrait",
+      "count": 24,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": null,
+      "expect": {
+        "cols": 4,
+        "rows": 6,
+        "tile": 92.25,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "24 buttons, Pixel 5 landscape",
+      "count": 24,
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "columns": null,
+      "expect": {
+        "cols": 8,
+        "rows": 3,
+        "tile": 80.5,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "55 buttons, Pixel 5 portrait",
+      "count": 55,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": null,
+      "expect": {
+        "cols": 6,
+        "rows": 10,
+        "tile": 58.833,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "55 buttons, Pixel 5 landscape",
+      "count": 55,
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "columns": null,
+      "expect": {
+        "cols": 11,
+        "rows": 5,
+        "tile": 56.364,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "no buttons",
+      "count": 0,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": null,
+      "expect": {
+        "cols": 0,
+        "rows": 0,
+        "tile": 0,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "columns 2, 6 buttons, portrait",
+      "count": 6,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": 2,
+      "expect": {
+        "cols": 2,
+        "rows": 3,
+        "tile": 192.5,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "columns 1, 3 buttons, landscape",
+      "count": 3,
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "columns": 1,
+      "expect": {
+        "cols": 1,
+        "rows": 3,
+        "tile": 109.667,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "columns 6, 55 buttons, landscape (too many rows)",
+      "count": 55,
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "columns": 6,
+      "expect": {
+        "cols": 6,
+        "rows": 5,
+        "tile": 62.6,
+        "overflow": 26
+      }
+    },
+    {
+      "name": "columns 8 too narrow in portrait, ignored",
+      "count": 12,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": 8,
+      "expect": {
+        "cols": 3,
+        "rows": 4,
+        "tile": 125.667,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "66 buttons fill portrait exactly",
+      "count": 66,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": null,
+      "expect": {
+        "cols": 6,
+        "rows": 11,
+        "tile": 56.364,
+        "overflow": 0
+      }
+    },
+    {
+      "name": "56 buttons overflow landscape",
+      "count": 56,
+      "page": {
+        "w": 700,
+        "h": 345
+      },
+      "columns": null,
+      "expect": {
+        "cols": 11,
+        "rows": 5,
+        "tile": 56.364,
+        "overflow": 2
+      }
+    },
+    {
+      "name": "80 buttons overflow portrait",
+      "count": 80,
+      "page": {
+        "w": 393,
+        "h": 700
+      },
+      "columns": null,
+      "expect": {
+        "cols": 6,
+        "rows": 11,
+        "tile": 56.364,
+        "overflow": 15
+      }
+    },
+    {
+      "name": "page area too small for one tile",
+      "count": 3,
+      "page": {
+        "w": 50,
+        "h": 300
+      },
+      "columns": null,
+      "expect": {
+        "cols": 0,
+        "rows": 0,
+        "tile": 0,
+        "overflow": 3
+      }
+    }
+  ]
+}

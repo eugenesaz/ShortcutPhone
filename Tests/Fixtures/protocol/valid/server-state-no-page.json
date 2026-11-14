@@ -1,0 +1,6 @@
+{
+  "type": "state",
+  "frontmost": { "bundleId": "com.apple.finder", "name": "Finder" },
+  "global": [{ "id": "btn_1", "type": "app", "bundleId": "com.apple.Safari" }],
+  "page": null
+}

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "server": { "port": 8765 },
+  "global": [
+    { "id": "g_safari", "type": "app", "bundleId": "com.apple.Safari" },
+    { "id": "g_notes", "type": "app", "bundleId": "com.apple.Notes" },
+    { "id": "g_terminal", "type": "app", "bundleId": "com.apple.Terminal" },
+    { "id": "g_textedit", "type": "app", "bundleId": "com.apple.TextEdit" }
+  ],
+  "pages": [
+    {
+      "bundleId": "com.apple.Notes",
+      "columns": null,
+      "buttons": [
+        { "id": "n_hello", "type": "text", "label": "Hello", "emoji": "👋", "text": "Hello from ShortcutPhone" },
+        { "id": "n_thanks", "type": "text", "label": "Thanks", "emoji": "🙏", "text": "Thanks, got it 👍" },
+        { "id": "n_new", "type": "keys", "label": "New note", "emoji": "📝", "keys": "cmd+n" }
+      ]
+    },
+    {
+      "bundleId": "com.apple.Terminal",
+      "columns": 2,
+      "buttons": [
+        { "id": "t_ls", "type": "text", "label": "ls -la", "text": "ls -la" },
+        { "id": "t_git", "type": "text", "label": "git status", "text": "git status" },
+        { "id": "t_clear", "type": "keys", "label": "Clear", "keys": "cmd+k" },
+        { "id": "t_tab", "type": "keys", "label": "New tab", "keys": "cmd+t", "color": "#2D6A4F" }
+      ]
+    }
+  ]
+}

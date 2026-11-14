@@ -1,0 +1,14 @@
+.DS_Store
+.build/
+build/
+.swiftpm/
+web/node_modules/
+web/dist/
+*.xcodeproj
+
+# Local working notes and agent setup (not published)
+tasks/
+CLAUDE.md
+.claude/
+spikes/
+docs/requirements.md

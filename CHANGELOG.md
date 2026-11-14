@@ -1,0 +1,14 @@
+# Changelog
+
+## [0.1.0] - 2026-11-14
+
+First public release.
+
+- Menu-bar agent for macOS 14+ that serves a touch UI to a paired phone over Wi-Fi, or over
+  USB with `adb reverse`.
+- Button types: open app, text (paste + Return, clipboard restored), key combo, and web page.
+- Pages per app that follow the frontmost app, plus an always-visible app strip.
+- Grid that never scrolls, with per-page capacity enforced by the editor and the agent.
+- Browser editor with an app picker, capacity counters and device revocation.
+- QR pairing with one-time codes, and hashed device tokens.
+- Starter config installed on first launch.

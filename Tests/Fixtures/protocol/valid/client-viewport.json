@@ -1,0 +1,5 @@
+{
+  "type": "viewport",
+  "portrait": { "page": { "w": 393, "h": 700 }, "strip": { "w": 393, "h": 72 } },
+  "landscape": { "page": { "w": 700.5, "h": 345 }, "strip": { "w": 72, "h": 393 } }
+}

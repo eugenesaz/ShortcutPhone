@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "server": { "port": 8765 },
+  "global": [
+    { "id": "btn_1", "type": "app", "bundleId": "com.apple.Safari", "pinned": true },
+    { "id": "btn_2", "type": "app", "bundleId": "com.tinyspeck.slackmacgap", "color": "#4A154B" }
+  ],
+  "pages": [
+    {
+      "bundleId": "com.tinyspeck.slackmacgap",
+      "columns": null,
+      "buttons": [
+        { "id": "btn_3", "type": "text", "label": "LGTM", "emoji": "👍", "text": "LGTM, merging." },
+        { "id": "btn_4", "type": "keys", "label": "Jump to", "keys": "cmd+k" }
+      ]
+    }
+  ]
+}
