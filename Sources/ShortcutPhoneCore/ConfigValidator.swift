@@ -92,8 +92,10 @@ public enum ConfigValidator {
         return true
     }
 
+    /// `#RRGGBB` with ASCII hex digits, matching the editor's `/^#[0-9A-Fa-f]{6}$/`.
+    /// (`Character.isHexDigit` would also accept full-width digits such as `Ａ`.)
     static func isHexColor(_ value: String) -> Bool {
         guard value.count == 7, value.first == "#" else { return false }
-        return value.dropFirst().allSatisfy(\.isHexDigit)
+        return value.dropFirst().allSatisfy { $0.isASCII && $0.isHexDigit }
     }
 }

@@ -6,7 +6,6 @@ import ShortcutPhoneCore
 public enum AccessibilityStatus {
     public static var isTrusted: Bool { AXIsProcessTrusted() }
 
-    /// Shows the system prompt that sends the user to Privacy & Security > Accessibility.
     /// Opens Privacy & Security › Accessibility, where the user can switch ShortcutPhone on.
     @MainActor
     public static func openSettings() {

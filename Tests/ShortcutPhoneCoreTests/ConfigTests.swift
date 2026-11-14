@@ -172,7 +172,8 @@ import Testing
         #expect(found.map(\.path) == ["pages[1].bundleId"])
     }
 
-    @Test(arguments: ["red", "#12345", "#GGGGGG", "4A154B"])
+    // Full-width digits count as hex digits to Character.isHexDigit; the editor rejects them.
+    @Test(arguments: ["red", "#12345", "#GGGGGG", "4A154B", "#ＡＢＣＤＥＦ", "#１２３４５６"])
     func rejectsBadColor(_ color: String) throws {
         let found = try issues { o in pageButton(&o, 0) { $0["color"] = color } }
         #expect(found.map(\.path) == ["pages[0].buttons[0].color"])

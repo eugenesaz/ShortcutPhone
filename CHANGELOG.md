@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.1] - 2026-11-14
+
+- Colors in `config.json` must use plain ASCII hex digits (`#4A154B`), the same rule as the
+  editor. Before, the agent also accepted full-width digits that the editor rejected.
+
 ## [0.2.0] - 2026-11-14
 
 - Automatic updates: the app checks for a new version once a day and installs it with one
