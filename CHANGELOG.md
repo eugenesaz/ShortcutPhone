@@ -1,14 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.0] - 2026-11-14
 
 - Folders: a page button that opens a grid of more buttons on the phone, with a Back tile. Each
   folder goes back to the page after a tap or stays open. Open folders close on app switch or
   after 30 s idle. The editor has **Add folder**, folder contents under the page, and **Move to**
   for sorting existing buttons into folders. Capacity is the page's minus the Back tile.
-
-## [0.2.1] - 2026-11-14
-
 - Colors in `config.json` must use plain ASCII hex digits (`#4A154B`), the same rule as the
   editor. Before, the agent also accepted full-width digits that the editor rejected.
 
