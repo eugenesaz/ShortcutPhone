@@ -1,5 +1,6 @@
 import "./phone.css";
 import { flashTile, showToast } from "./press-feedback";
+import { createKeepAwakeVideo, KeepAwake } from "./keep-awake";
 import { pageAssets, pageChanged } from "./page-update";
 import { contentSize, renderPhone, scrollStripToStart } from "./render";
 import { startPhone, type Phone } from "./session";
@@ -14,6 +15,18 @@ if (root) {
   let phone: Phone | null = null;
   const loadedAssets = pageAssets(document);
   const tracker = new ViewportTracker(localStorage);
+  const keepAwake = new KeepAwake({
+    ...("wakeLock" in navigator ? { wakeLock: navigator.wakeLock } : {}),
+    createVideo: () => createKeepAwakeVideo(document, "/keep-awake.mp4"),
+    isVisible: () => document.visibilityState === "visible",
+    onVisibilityChange: (listener) => {
+      document.addEventListener("visibilitychange", listener);
+    },
+  });
+  // Any tap counts as the user gesture a blocked video needs to start.
+  document.addEventListener("click", () => {
+    keepAwake.retry();
+  });
   void startPhone({
     storage: localStorage,
     fetch: window.fetch.bind(window),
@@ -23,6 +36,7 @@ if (root) {
     },
     render: (model) => {
       renderPhone(root, model);
+      keepAwake.set(model.connected);
     },
     feedback: (buttonId, ok, message, folderId) => {
       flashTile(root, folderId === undefined ? buttonId : [buttonId, folderId], ok);

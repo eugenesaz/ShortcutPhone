@@ -72,6 +72,7 @@ the PR or release notes and fill in the results.
 | N2 | USB replug | Unplug the cable: "Disconnected". Plug it back in: green within about 10 s | |
 | N3 | Mac sleep | Sleep the Mac and wake it: the phone's dot is green within 5 s | |
 | N4 | Phone count | The menu shows "1 phone connected". Close the phone tab: "No phones connected" within a few seconds | |
+| N5 | Screen on | Leave the phone idle past its screen timeout, over Wi-Fi and over USB: the screen stays on. Quit the app: the screen turns off after the usual timeout | |
 
 ## Grid and capacity
 

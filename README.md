@@ -70,9 +70,8 @@ open /Applications/ShortcutPhone.app
    tap **Hello** on the phone.
 4. **Make it yours.** Menu → **Open Editor…** opens the editor in your browser. Add pages for
    the apps you use, add buttons, and click **Save**.
-5. **Optional:** add the page to the phone's home screen (Chrome: ⋮ → **Add to home screen**),
-   and turn on **Stay awake** in Android's developer options so the screen stays on while
-   charging.
+5. **Optional:** add the page to the phone's home screen (Chrome: ⋮ → **Add to home screen**).
+   The phone's screen stays on while it's connected to the Mac.
 
 ## Buttons
 

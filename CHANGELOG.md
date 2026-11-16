@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+- The phone's screen stays on while it's connected to the Mac, over USB and over Wi-Fi. When
+  the Mac goes away, the screen turns off as usual. You no longer need Android's **Stay awake**
+  developer option.
+
 ## [0.3.1] - 2026-11-14
 
 - The phone page reloads itself when the Mac app comes back with a newer version. Before, a

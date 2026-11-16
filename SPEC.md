@@ -69,7 +69,7 @@ The phone opens it in Chrome, pinned to the home screen. Tapping a button runs a
 - The header shows the frontmost app's name and icon, plus a connection dot.
 - Uses one WebSocket to the agent. It reconnects automatically with backoff (max 5 s) and shows "Disconnected" while offline.
 - Every press gets haptic feedback (`navigator.vibrate`) and a visual flash: green for OK, red for an error.
-- Runs as a home-screen web app with a manifest and `display: standalone`. The screen stays on through Android's "Stay awake while charging" setting, because the Wake Lock API needs HTTPS.
+- Runs as a home-screen web app with a manifest and `display: standalone`. The screen stays on while the phone is connected to the Mac: through the Wake Lock API on secure pages (localhost over USB), otherwise through a muted, invisible, looping video that fills the screen, because the Wake Lock API needs HTTPS.
 
 ### Folders
 

@@ -356,3 +356,14 @@ body,
 .tile--folder.tile--error {
   box-shadow: inset 0 0 0 3px var(--error);
 }
+
+/* Fills the screen so Chrome counts it as watched, but can't be seen or tapped (keep-awake.ts). */
+.keep-awake {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
