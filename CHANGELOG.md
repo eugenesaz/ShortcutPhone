@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.2] - 2026-11-16
 
 - The phone's screen stays on while it's connected to the Mac, over USB and over Wi-Fi. When
   the Mac goes away, the screen turns off as usual. You no longer need Android's **Stay awake**
